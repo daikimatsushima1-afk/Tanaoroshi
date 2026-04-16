@@ -6,10 +6,10 @@
       "name": "1555JADBLK",
       "jan": "00490740",
       "category": "Padlock",
-      "shelf": "4",
+      "shelf": "J-02",
       "pqty": 24,
       "pqty2": null,
-      "unit": "J-02",
+      "unit": "個",
       "bookStock": 240
     }
   ],
@@ -40,5 +40,5 @@
     "date": "2026-04-16",
     "description": "棚卸"
   },
-  "updatedAt": "2026-04-16 23:15:43"
+  "updatedAt": "2026-04-16 23:22:50"
 }
