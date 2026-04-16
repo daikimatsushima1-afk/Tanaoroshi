@@ -1,18 +1,5 @@
 {
-  "items": [
-    {
-      "id": "1555JADBLK",
-      "sku": "1555JADBLK",
-      "name": "1555JADBLK",
-      "jan": "00490740",
-      "category": "Padlock",
-      "shelf": "J-02",
-      "pqty": 24,
-      "pqty2": null,
-      "unit": "個",
-      "bookStock": 240
-    }
-  ],
+  "items": [],
   "users": [
     {
       "name": "松島",
@@ -40,5 +27,5 @@
     "date": "2026-04-16",
     "description": "棚卸"
   },
-  "updatedAt": "2026-04-16 23:24:23"
+  "updatedAt": "2026-04-16 23:34:55"
 }
