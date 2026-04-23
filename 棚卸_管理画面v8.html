@@ -448,6 +448,13 @@ tr.row-void{border-left:3px solid #ccc8be}
    localStorage用途：マスタ・設定・GitHub設定・GS URLのみ。
    棚卸記録はSheetsが正本。
 ================================================================ */
+
+/* ▼▼▼ 別PCでの設定不要化：GS URLをここに直接埋め込む ▼▼▼
+   デプロイURLを貼り付ければ、どのPCでもlocalStorage設定なしで動作する。
+   空文字('')のままの場合は従来通りlocalStorageの設定値を使用。       */
+const HARDCODED_GS_URL='';
+/* ▲▲▲ ここまで ▲▲▲ */
+
 const K={master:'ts_master',users:'ts_users',gs:'ts_gs_url',inv:'ts_inv_settings',categories:'ts_categories',ghUser:'ts_gh_user',ghRepo:'ts_gh_repo',ghToken:'ts_gh_token'};
 
 let sheetsRecords=[];          // Sheetsから取得した記録（メモリ上）
@@ -462,7 +469,8 @@ function toast(msg,dur=2800){const t=document.getElementById('toast');t.textCont
 function getBaseUrl(){const u=localStorage.getItem(K.ghUser)||'',r=localStorage.getItem(K.ghRepo)||'';return u&&r?`https://${u}.github.io/${r}`:(location.origin+location.pathname.replace(/\/[^/]*$/, ''))}
 function getInputUrl(){return getBaseUrl()+'/棚卸_入力画面v8.html'}
 function getCategories(){return ls(K.categories)||['文具・事務用品','電子機器','消耗品','梱包資材','清掃用品','食品','その他']}
-function getGsUrl(){return localStorage.getItem(K.gs)||''}
+/* HARDCODED_GS_URLが設定されていればそちらを優先、なければlocalStorage */
+function getGsUrl(){return HARDCODED_GS_URL||localStorage.getItem(K.gs)||''}
 
 function setBanner(type,msg){
   const b=document.getElementById('gs-banner');
@@ -778,7 +786,20 @@ async function publishMaster(){
 /* ===== 設定 ===== */
 function renderSettings(){
   renderCategoryList();renderCategorySelect('m-category');
-  document.getElementById('gs-url').value=getGsUrl();
+  /* HARDCODED_GS_URLが設定されていれば入力欄に表示（編集は無効化してハードコード旨を表示）*/
+  const gsInput=document.getElementById('gs-url');
+  if(HARDCODED_GS_URL){
+    gsInput.value=HARDCODED_GS_URL;
+    gsInput.readOnly=true;
+    gsInput.title='HTMLに直接埋め込まれています（HARDCODED_GS_URL）';
+    gsInput.style.background='var(--paper2)';
+    gsInput.style.color='var(--ink3)';
+  }else{
+    gsInput.value=getGsUrl();
+    gsInput.readOnly=false;
+    gsInput.style.background='';
+    gsInput.style.color='';
+  }
   document.getElementById('gh-user').value=localStorage.getItem(K.ghUser)||'';
   document.getElementById('gh-repo').value=localStorage.getItem(K.ghRepo)||'';
   document.getElementById('gh-token').value=localStorage.getItem(K.ghToken)||'';
@@ -795,7 +816,7 @@ function renderSettings(){
     }
   }
 }
-function saveGS(){const url=document.getElementById('gs-url').value.trim();localStorage.setItem(K.gs,url);setBanner(url?'info':'warn',url?'Apps Script URLを保存しました — 「記録を読み込む」で確認':'Google Sheets未接続');toast(url?'保存しました':'クリアしました')}
+function saveGS(){if(HARDCODED_GS_URL){toast('URLはHTMLに直接埋め込まれています（HARDCODED_GS_URL）');return}const url=document.getElementById('gs-url').value.trim();localStorage.setItem(K.gs,url);setBanner(url?'info':'warn',url?'Apps Script URLを保存しました — 「記録を読み込む」で確認':'Google Sheets未接続');toast(url?'保存しました':'クリアしました')}
 async function testGS(){const url=getGsUrl();if(!url){toast('URLが設定されていません');return}try{const res=await fetch(url+'?action=ping');const d=await res.json();if(d.status==='ok'){setBanner('ok','✓ 接続OK — '+d.message+' / 記録数: '+d.recordCount);toast('接続OK: '+d.message)}else toast('エラー: '+d.message)}catch(e){toast('接続失敗: '+e.message)}}
 function saveGitHubSettings(){localStorage.setItem(K.ghUser,document.getElementById('gh-user').value.trim());localStorage.setItem(K.ghRepo,document.getElementById('gh-repo').value.trim());localStorage.setItem(K.ghToken,document.getElementById('gh-token').value.trim());toast('保存しました');renderSettings()}
 function saveInvSettings(){lset(K.inv,{date:document.getElementById('inv-date').value,description:document.getElementById('inv-desc').value.trim()});toast('保存しました')}
