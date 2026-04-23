@@ -381,6 +381,18 @@ function lset(k,v){localStorage.setItem(k,JSON.stringify(v))}
 function fmtTs(d){const p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`}
 function uid(){return Date.now()+'_'+Math.random().toString(36).slice(2,7)}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+/* JAN正規化：数字のみ抽出・前後トリム・先頭ゼロ差吸収
+   例: "0049000042566" → マスタの "49000042566" にも一致させる（数値比較） */
+function normalizeJAN(raw){
+  const digits=(raw||'').replace(/\D/g,'').replace(/^0+/,'');
+  return digits;
+}
+function matchJAN(masterJan,scanned){
+  if(!masterJan||!scanned)return false;
+  return normalizeJAN(masterJan)===normalizeJAN(scanned);
+}
+
 function toast(msg,dur=2800){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur)}
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
 
@@ -415,7 +427,7 @@ async function loadMasterData(){
 function populateCatSelect(){const sel=document.getElementById('list-cat');sel.innerHTML='<option value="">— カテゴリで絞り込み —</option>'+(masterData.categories||[]).map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}
 
 function switchTab(name,btn){document.querySelectorAll('.stab').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.search-panel').forEach(p=>p.classList.remove('active'));btn.classList.add('active');document.getElementById('panel-'+name).classList.add('active');if(name==='list')renderItemList()}
-function searchByJAN(){const jan=document.getElementById('jan-input').value.trim();if(!jan){toast('JANコードを入力してください');return}const item=(masterData.items||[]).find(i=>(i.jan||'').replace(/\s/g,'')===jan.replace(/\s/g,''));if(item)openInput(item);else toast('JANコードが見つかりません: '+jan)}
+function searchByJAN(){const raw=document.getElementById('jan-input').value.trim();if(!raw){toast('JANコードを入力してください');return}const item=(masterData.items||[]).find(i=>matchJAN(i.jan,raw));if(item)openInput(item);else toast('JANコードが見つかりません: '+raw)}
 function searchBySKU(){const sku=document.getElementById('sku-input').value.trim();if(!sku){toast('SKUコードを入力してください');return}const item=(masterData.items||[]).find(i=>i.sku.toUpperCase()===sku.toUpperCase());if(item)openInput(item);else toast('SKUが見つかりません: '+sku)}
 function renderItemList(){const cat=document.getElementById('list-cat')?.value||'';const q=(document.getElementById('list-search')?.value||'').toLowerCase();const items=masterData.items||[];const filtered=items.filter(i=>(!cat||i.category===cat)&&(!q||(i.name||'').toLowerCase().includes(q)||(i.sku||'').toLowerCase().includes(q)));const box=document.getElementById('item-list-box');if(!filtered.length){box.innerHTML='<div class="item-list-empty">該当する商品がありません</div>';return}box.innerHTML=filtered.map(item=>`<div class="item-list-row" onclick='openInputById("${esc(item.sku)}")'><div class="ilr-name">${esc(item.name)}</div><div class="ilr-meta">SKU: ${esc(item.sku)}${item.jan?' / JAN: '+esc(item.jan):''}${item.shelf?' / 棚: '+esc(item.shelf):''}</div></div>`).join('')}
 function openInputById(sku){const item=(masterData.items||[]).find(i=>i.sku===sku);if(item)openInput(item)}
@@ -423,28 +435,38 @@ function openInputById(sku){const item=(masterData.items||[]).find(i=>i.sku===sk
 /* カメラ：バーコード専用（QRコード読み取りなし） */
 async function toggleCamera(){
   const icon=document.getElementById('btn-icon'),text=document.getElementById('btn-text'),btn=document.getElementById('btn-camera'),status=document.getElementById('scan-status');
-  if(cameraOn){try{if(scanner)await scanner.stop()}catch(e){}cameraOn=false;btn.classList.remove('on');icon.textContent='📷';text.textContent='カメラでバーコードをスキャン';status.textContent='カメラを停止しました';return}
+  if(cameraOn){
+    /* カメラ停止：エラーが出ても状態をリセットする */
+    try{if(scanner)await scanner.stop()}catch(e){console.warn('カメラ停止エラー（無視）:',e)}
+    finally{cameraOn=false;scanner=null;btn.classList.remove('on');icon.textContent='📷';text.textContent='カメラでバーコードをスキャン';status.textContent='カメラを停止しました'}
+    return;
+  }
   try{
     icon.textContent='⏳';text.textContent='起動中…';status.textContent='カメラへのアクセスを許可してください';
     scanner=new Html5Qrcode('qr-reader');
     let camConfig={facingMode:'environment'};
     try{const devices=await Html5Qrcode.getCameras();if(devices&&devices.length){const back=devices.find(d=>/back|rear|後|リア/i.test(d.label));camConfig=back?back.id:devices[devices.length-1].id}}catch(e){}
-    await scanner.start(camConfig,
+    await scanner.start(
+      camConfig,
       {fps:10,qrbox:{width:260,height:120},aspectRatio:1.5,
-       /* バーコードフォーマットのみ - QRコードは含めない */
-       formatsToSupport:[Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.CODE_39,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E],
+       /* formatsToSupport は指定しない：iPhone Safariでは指定するとEAN読取が失敗する場合がある
+          html5-qrcodeはデフォルトでEAN-13/EAN-8/CODE128等を優先して認識する */
        experimentalFeatures:{useBarCodeDetectorIfSupported:true}},
       (decoded)=>{
+        /* スキャン成功：カメラ停止してからJAN照合 */
         toggleCamera();
-        const jan=decoded.trim();
-        const item=(masterData.items||[]).find(i=>(i.jan||'').replace(/\s/g,'')===jan.replace(/\s/g,''));
+        const raw=decoded.trim();
+        const item=(masterData.items||[]).find(i=>matchJAN(i.jan,raw));
         if(item){openInput(item)}
-        else{switchTab('jan',document.querySelectorAll('.stab')[0]);document.getElementById('jan-input').value=jan;toast('JAN: '+jan+' — マスタに未登録です');status.textContent='JAN: '+jan+' — マスタに未登録です'}
+        else{switchTab('jan',document.querySelectorAll('.stab')[0]);document.getElementById('jan-input').value=raw;toast('JAN: '+raw+' — マスタに未登録です');status.textContent='JAN: '+raw+' — マスタに未登録です'}
       },
       ()=>{}
     );
     cameraOn=true;btn.classList.add('on');icon.textContent='⏹';text.textContent='カメラを停止';status.textContent='バーコードを横向きで枠内に収めてください';
   }catch(err){
+    /* 起動失敗：必ず状態をリセット */
+    try{if(scanner)await scanner.stop()}catch(e2){}
+    finally{scanner=null}
     cameraOn=false;btn.classList.remove('on');icon.textContent='📷';text.textContent='カメラでバーコードをスキャン';
     status.textContent=/Permission|NotAllowed/i.test(err.toString())?'カメラの許可が必要です。Safari設定→このWebサイト→カメラを「許可」に変更':'カメラエラー: '+err.message;
   }
