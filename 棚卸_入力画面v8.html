@@ -385,6 +385,8 @@ let masterData={items:[],users:[],categories:[],inv:{}};
 let currentItem=null,selectedTeam=null,timestamp=null;
 let stepTimer=null,stepFast=null,scanner=null,cameraOn=false;
 let isSubmitting=false; // 多重送信防止フラグ
+let isPrevChecked=false; // Sheets前回確認完了フラグ
+let hasPrevRecord=false; // 前回レコード存在フラグ
 
 function ls(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch{return null}}
 function lset(k,v){localStorage.setItem(k,JSON.stringify(v))}
@@ -502,6 +504,8 @@ async function openInput(item){
   document.getElementById('prev-note').classList.remove('show');
   document.getElementById('prev-note-body').textContent='';
   document.getElementById('dup-warn').classList.remove('show');
+  isPrevChecked=false;
+  hasPrevRecord=false;
   populateUserSelects(null);recalc();updateSubmitBtn();
   showScreen('screen-input');
   /* Sheetsから前回入力を非同期取得 */
@@ -522,6 +526,7 @@ async function checkPrevRecordFromSheets(sku){
       document.getElementById('prev-user').textContent=prev.inputUser;
       document.getElementById('prev-banner').classList.add('show');
       document.getElementById('dup-warn').classList.add('show');
+      hasPrevRecord=true;
       /* 備考欄を必須に切り替え */
       document.getElementById('note-label').textContent='備考（再カウント理由を必須入力）';
       document.getElementById('note-ta').placeholder='例: 数え間違いのため再カウント';
@@ -533,6 +538,7 @@ async function checkPrevRecordFromSheets(sku){
       }
     }
   }catch(e){console.warn('前回入力取得失敗:',e.message)}
+  finally{isPrevChecked=true;}
 }
 
 function buildPalletRows(item){
@@ -567,19 +573,26 @@ async function submitRecord(){
   if(!selectedTeam||!document.getElementById('input-user').value){
     toast('チームと入力者を選択してください');return;
   }
-  /* 多重送信防止フラグ：既に送信中なら何もしない（ボタンは変更しない）*/
+  /* 多重送信防止フラグ：既に送信中なら何もしない */
   if(isSubmitting) return;
 
-  /* 再カウント時：備考欄の入力必須チェック（送信前・isSubmittingセット前）*/
-  const isPrevExists=document.getElementById('prev-banner').classList.contains('show');
-  const noteVal=document.getElementById('note-ta').value.trim();
-  if(isPrevExists&&!noteVal){
-    const noteTa=document.getElementById('note-ta');
-    noteTa.classList.add('error');
-    noteTa.scrollIntoView({behavior:'smooth',block:'center'});
-    noteTa.focus();
-    toast('再カウントの理由を備考に入力してください');
+  /* Sheets確認がまだ完了していない場合は待機を促す */
+  if(!isPrevChecked){
+    toast('前回データを確認中です。少し待ってから再度押してください');
     return;
+  }
+
+  /* 再カウント時：備考欄の入力必須チェック */
+  if(hasPrevRecord){
+    const noteVal=document.getElementById('note-ta').value.trim();
+    if(!noteVal){
+      const noteTa=document.getElementById('note-ta');
+      noteTa.classList.add('error');
+      noteTa.scrollIntoView({behavior:'smooth',block:'center'});
+      noteTa.focus();
+      toast('再カウントの理由を備考に入力してください');
+      return;
+    }
   }
 
   isSubmitting=true;
