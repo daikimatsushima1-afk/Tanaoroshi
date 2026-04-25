@@ -333,7 +333,6 @@ tr.row-void{border-left:3px solid #ccc8be}
 <div id="page-records" class="page">
   <div style="background:var(--info-l);border:1px solid rgba(26,92,138,.3);border-radius:var(--r);padding:9px 14px;margin-bottom:12px;font-size:12px;color:var(--info);display:flex;align-items:center;gap:10px">
     <span>📡 Google Sheetsからリアルタイムに読み込みます。iPhoneからの記録がここに反映されます。</span>
-    <button class="btn btn-sm" style="background:var(--info);color:#fff;border:none;margin-left:auto" onclick="loadRecordsFromSheets()">🔄 今すぐ更新</button>
   </div>
   <div class="card">
     <div class="card-header">
@@ -385,7 +384,6 @@ tr.row-void{border-left:3px solid #ccc8be}
           <div class="fg"><label class="fl">Apps Script URL</label><input id="gs-url" class="fi fi-mono" placeholder="https://script.google.com/macros/s/.../exec"><span class="fhint">棚卸_GoogleAppsScript_v3.js をデプロイしたURL</span></div>
           <button class="btn btn-primary" onclick="saveGS()">保存</button>
           <button class="btn btn-ghost btn-sm" onclick="testGS()">接続テスト</button>
-          <button class="btn btn-primary" onclick="loadRecordsFromSheets()">🔄 記録を今すぐ読み込む</button>
         </div>
       </div>
       <div class="card">
@@ -405,7 +403,6 @@ tr.row-void{border-left:3px solid #ccc8be}
           <div class="fg"><label class="fl">リポジトリ名</label><input id="gh-repo" class="fi fi-mono" placeholder="tanakoshi"></div>
           <div class="fg"><label class="fl">Personal Access Token</label><input id="gh-token" class="fi fi-mono" type="password" placeholder="ghp_..."><span class="fhint">Settings → Developer settings → Tokens (classic) → repo スコープ</span></div>
           <button class="btn btn-primary" onclick="saveGitHubSettings()">保存</button>
-          <button class="btn btn-primary" onclick="publishMaster()">📤 マスタを公開</button>
         </div>
       </div>
       <div class="card">
@@ -421,15 +418,6 @@ tr.row-void{border-left:3px solid #ccc8be}
       </div>
     </div>
     <div>
-      <div class="card" style="margin-bottom:16px">
-        <div class="card-header"><span class="card-title">棚卸設定</span></div>
-        <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
-          <div class="fg"><label class="fl">棚卸日</label><input id="inv-date" class="fi" type="date"></div>
-          <div class="fg"><label class="fl">説明</label><input id="inv-desc" class="fi" placeholder="2024年末棚卸"></div>
-          <button class="btn btn-primary" onclick="saveInvSettings()">保存</button>
-          <button class="btn btn-secondary" onclick="loadRecordsFromSheets()">🔄 Sheetsから記録を再読込</button>
-        </div>
-      </div>
       <div class="card">
         <div class="card-header"><span class="card-title">入力画面URL</span></div>
         <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
@@ -455,7 +443,7 @@ tr.row-void{border-left:3px solid #ccc8be}
 const HARDCODED_GS_URL='';
 /* ▲▲▲ ここまで ▲▲▲ */
 
-const K={master:'ts_master',users:'ts_users',gs:'ts_gs_url',inv:'ts_inv_settings',categories:'ts_categories',ghUser:'ts_gh_user',ghRepo:'ts_gh_repo',ghToken:'ts_gh_token'};
+const K={master:'ts_master',users:'ts_users',gs:'ts_gs_url',categories:'ts_categories',ghUser:'ts_gh_user',ghRepo:'ts_gh_repo',ghToken:'ts_gh_token'};
 
 let sheetsRecords=[];          // Sheetsから取得した記録（メモリ上）
 let missingShowAll=false;      // 未入力一覧の展開状態
@@ -514,7 +502,6 @@ function initData(){
     ]);
   }
   if(!ls(K.users)) lset(K.users,[{name:'山田 太郎',team:'チームA'},{name:'鈴木 一郎',team:'チームB'}]);
-  if(!ls(K.inv)) lset(K.inv,{date:fmtDate(new Date()),description:'棚卸'});
   const gsUrl=getGsUrl();
   if(gsUrl){setBanner('info','Google Sheets接続中...');loadRecordsFromSheets()}
   else setBanner('warn','Google Sheets未接続 — 設定タブでApps Script URLを入力してください');
@@ -777,7 +764,7 @@ function importMasterCSV(){
 async function publishMaster(){
   const user=localStorage.getItem(K.ghUser)||'',repo=localStorage.getItem(K.ghRepo)||'',token=localStorage.getItem(K.ghToken)||'';
   if(!user||!repo||!token){toast('設定タブでGitHub情報を入力してください');switchPage('settings',document.querySelectorAll('.tab')[4]);return}
-  const data={items:ls(K.master)||[],users:ls(K.users)||[],categories:getCategories(),inv:ls(K.inv)||{},updatedAt:fmtTs(new Date())};
+  const data={items:ls(K.master)||[],users:ls(K.users)||[],categories:getCategories(),inv:{},updatedAt:fmtTs(new Date())};
   const content=btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
   const apiUrl=`https://api.github.com/repos/${user}/${repo}/contents/master_data.json`;
   try{let sha='';try{const r=await fetch(apiUrl,{headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}});if(r.ok){const d=await r.json();sha=d.sha}}catch(e){}const body={message:'Update master_data '+fmtTs(new Date()),content};if(sha)body.sha=sha;const res=await fetch(apiUrl,{method:'PUT',headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:JSON.stringify(body)});if(res.ok){toast('マスタをGitHubに公開しました')}else{const e=await res.json();toast('公開失敗: '+e.message)}}catch(e){toast('エラー: '+e.message)}
@@ -803,7 +790,6 @@ function renderSettings(){
   document.getElementById('gh-user').value=localStorage.getItem(K.ghUser)||'';
   document.getElementById('gh-repo').value=localStorage.getItem(K.ghRepo)||'';
   document.getElementById('gh-token').value=localStorage.getItem(K.ghToken)||'';
-  const inv=ls(K.inv)||{};document.getElementById('inv-date').value=inv.date||fmtDate(new Date());document.getElementById('inv-desc').value=inv.description||'';
   document.getElementById('input-url-display').textContent=getInputUrl();
   renderUserList();
   /* 設定タブにロゴアップロードボタンを動的追加 */
@@ -819,7 +805,6 @@ function renderSettings(){
 function saveGS(){if(HARDCODED_GS_URL){toast('URLはHTMLに直接埋め込まれています（HARDCODED_GS_URL）');return}const url=document.getElementById('gs-url').value.trim();localStorage.setItem(K.gs,url);setBanner(url?'info':'warn',url?'Apps Script URLを保存しました — 「記録を読み込む」で確認':'Google Sheets未接続');toast(url?'保存しました':'クリアしました')}
 async function testGS(){const url=getGsUrl();if(!url){toast('URLが設定されていません');return}try{const res=await fetch(url+'?action=ping');const d=await res.json();if(d.status==='ok'){setBanner('ok','✓ 接続OK — '+d.message+' / 記録数: '+d.recordCount);toast('接続OK: '+d.message)}else toast('エラー: '+d.message)}catch(e){toast('接続失敗: '+e.message)}}
 function saveGitHubSettings(){localStorage.setItem(K.ghUser,document.getElementById('gh-user').value.trim());localStorage.setItem(K.ghRepo,document.getElementById('gh-repo').value.trim());localStorage.setItem(K.ghToken,document.getElementById('gh-token').value.trim());toast('保存しました');renderSettings()}
-function saveInvSettings(){lset(K.inv,{date:document.getElementById('inv-date').value,description:document.getElementById('inv-desc').value.trim()});toast('保存しました')}
 function addUser(){const name=document.getElementById('user-name').value.trim();if(!name){toast('名前を入力してください');return}const users=ls(K.users)||[];users.push({name,team:document.getElementById('user-team').value});lset(K.users,users);document.getElementById('user-name').value='';renderUserList();toast('追加しました')}
 function removeUser(name){lset(K.users,(ls(K.users)||[]).filter(u=>u.name!==name));renderUserList()}
 function renderUserList(){document.getElementById('user-list').innerHTML=(ls(K.users)||[]).map(u=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)"><span style="flex:1;font-size:13px">${esc(u.name)}</span><span class="td-badge badge-info">${esc(u.team)}</span><button class="btn btn-ghost btn-sm" style="color:var(--warn)" onclick="removeUser('${esc(u.name)}')">削除</button></div>`).join('')||'<div style="color:var(--ink3);font-size:12px">入力者が登録されていません</div>'}
