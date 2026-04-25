@@ -424,7 +424,6 @@ async function loadMasterData(){
     masterData=await res.json();
     const count=masterData.items?.length||0;
     infoEl.textContent=`✓ マスタ読込済 ${count}件（${masterData.updatedAt?.slice(0,16)||'—'}）`;
-    if(masterData.inv?.date)document.getElementById('inv-date-display').textContent=masterData.inv.date;
   }catch(e){
     const localItems=ls('ts_master');
     if(localItems){masterData={items:localItems,users:ls('ts_users')||[],categories:ls('ts_categories')||[],inv:ls('ts_inv_settings')||{}};infoEl.textContent=`⚠ ローカルデータ使用 ${localItems.length}件`}
@@ -579,7 +578,6 @@ async function submitRecord(){
     const unit=currentItem.unit||'個';
     const bare=parseInt(document.getElementById('bare-val').value)||0;
     const note=document.getElementById('note-ta').value.trim();
-    const inv=masterData.inv||{};
     const types=[];
     if(currentItem.pqty) types.push({type:'A',pqty:currentItem.pqty});
     if(currentItem.pqty2) types.push({type:'B',pqty:currentItem.pqty2});
@@ -602,7 +600,7 @@ async function submitRecord(){
       inputUser:document.getElementById('input-user').value,
       verifyUser:document.getElementById('verify-user').value||'',
       timestamp:fmtTs(timestamp),
-      invDate:inv.date||new Date().toISOString().slice(0,10),
+      invDate:new Date().toISOString().slice(0,10),
       note,status:'active',createdAt:fmtTs(new Date())
     };
 
