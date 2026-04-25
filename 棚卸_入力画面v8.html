@@ -74,6 +74,10 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--paper);color:var(--i
 .prev-banner.show{display:block}
 .dup-warn{background:var(--warn);color:#fff;padding:10px 16px;font-size:13px;font-weight:700;display:none;flex-shrink:0}
 .dup-warn.show{display:block}
+.prev-note{background:var(--info-l);border-bottom:2px solid var(--info);padding:8px 16px 10px;display:none;flex-shrink:0}
+.prev-note.show{display:block}
+.prev-note-label{font-size:10px;font-weight:700;color:var(--info);letter-spacing:.06em;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;margin-bottom:4px}
+.prev-note-body{font-size:13px;color:var(--ink);background:#fff;border:1px solid rgba(26,92,138,.2);border-radius:6px;padding:8px 10px;line-height:1.6;white-space:pre-wrap;word-break:break-all;user-select:none;-webkit-user-select:none;cursor:default}
 .input-scroll{flex:1;overflow-y:auto;padding:0 0 130px;-webkit-overflow-scrolling:touch}
 .input-body{padding:16px}
 .isec{margin-bottom:20px}
@@ -253,6 +257,10 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--paper);color:var(--i
   </div>
   <div class="prev-banner" id="prev-banner">
     📋 前回入力: <strong id="prev-total">—</strong>（<span id="prev-ts">—</span> / <span id="prev-team">—</span> / <span id="prev-user">—</span>）<br>登録すると旧データを自動無効化します。
+  </div>
+  <div class="prev-note" id="prev-note">
+    <div class="prev-note-label">前回のメモ</div>
+    <div class="prev-note-body" id="prev-note-body"></div>
   </div>
   <div class="dup-warn" id="dup-warn">⚠ Sheetsに入力済みレコードがあります。登録すると旧データを無効化して最新を有効にします。</div>
   <div class="input-scroll">
@@ -488,6 +496,8 @@ async function openInput(item){
   document.getElementById('input-user').value='';document.getElementById('verify-user').value='';
   document.querySelectorAll('.team-btn').forEach(b=>b.classList.remove('sel'));
   document.getElementById('prev-banner').classList.remove('show');
+  document.getElementById('prev-note').classList.remove('show');
+  document.getElementById('prev-note-body').textContent='';
   document.getElementById('dup-warn').classList.remove('show');
   populateUserSelects(null);recalc();updateSubmitBtn();
   showScreen('screen-input');
@@ -509,6 +519,12 @@ async function checkPrevRecordFromSheets(sku){
       document.getElementById('prev-user').textContent=prev.inputUser;
       document.getElementById('prev-banner').classList.add('show');
       document.getElementById('dup-warn').classList.add('show');
+      /* 前回メモがある場合のみ編集不可エリアに表示 */
+      const prevNote=(prev.note||'').trim();
+      if(prevNote){
+        document.getElementById('prev-note-body').textContent=prevNote;
+        document.getElementById('prev-note').classList.add('show');
+      }
     }
   }catch(e){console.warn('前回入力取得失敗:',e.message)}
 }
