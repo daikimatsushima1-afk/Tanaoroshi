@@ -125,6 +125,8 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--paper);color:var(--i
 .ts-val{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500}
 .note-ta{width:100%;padding:11px 14px;border:1px solid var(--border2);border-radius:var(--r);font-family:'Noto Sans JP',sans-serif;font-size:14px;color:var(--ink);resize:none;background:#fff;outline:none;min-height:72px}
 .note-ta:focus{border-color:var(--accent)}
+.note-ta.error{border-color:#d32f2f!important;box-shadow:0 0 0 3px rgba(211,47,47,.15);animation:note-shake .25s ease}
+@keyframes note-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 .footer{position:fixed;bottom:0;left:0;right:0;background:var(--paper);border-top:1px solid var(--border);padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom));display:flex;gap:10px;z-index:50}
 .btn-back{background:var(--paper2);border:1px solid var(--border2);border-radius:var(--r);padding:14px 16px;font-size:14px;cursor:pointer;color:var(--ink2);flex-shrink:0}
 .btn-submit{flex:1;background:var(--accent);color:#fff;border:none;border-radius:var(--r);padding:14px;font-size:16px;font-weight:700;cursor:pointer;transition:all .15s}
@@ -310,7 +312,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--paper);color:var(--i
         <div class="ts-box"><span class="ts-label">棚卸日</span><span class="ts-val" id="inv-date-display">—</span></div>
       </div>
       <div class="isec">
-        <div class="isec-title">備考（任意・棚卸記録に保存）</div>
+        <div class="isec-title" id="note-label">備考（任意・棚卸記録に保存）</div>
         <textarea id="note-ta" class="note-ta" placeholder="例: 破損品3個含む" maxlength="200"></textarea>
         <div style="text-align:right;font-size:11px;color:var(--ink3);margin-top:4px"><span id="note-count">0</span>/200</div>
       </div>
@@ -492,6 +494,8 @@ async function openInput(item){
   buildPalletRows(item);
   document.getElementById('bare-val').value=0;
   document.getElementById('note-ta').value='';document.getElementById('note-count').textContent='0';
+  document.getElementById('note-ta').classList.remove('error');
+  document.getElementById('note-label').textContent='備考（任意・棚卸記録に保存）';
   document.getElementById('input-user').value='';document.getElementById('verify-user').value='';
   document.querySelectorAll('.team-btn').forEach(b=>b.classList.remove('sel'));
   document.getElementById('prev-banner').classList.remove('show');
@@ -518,6 +522,9 @@ async function checkPrevRecordFromSheets(sku){
       document.getElementById('prev-user').textContent=prev.inputUser;
       document.getElementById('prev-banner').classList.add('show');
       document.getElementById('dup-warn').classList.add('show');
+      /* 備考欄を必須に切り替え */
+      document.getElementById('note-label').textContent='備考（再カウント理由を必須入力）';
+      document.getElementById('note-ta').placeholder='例: 数え間違いのため再カウント';
       /* 前回メモがある場合のみ編集不可エリアに表示 */
       const prevNote=(prev.note||'').trim();
       if(prevNote){
@@ -562,6 +569,19 @@ async function submitRecord(){
   }
   /* 多重送信防止フラグ：既に送信中なら何もしない（ボタンは変更しない）*/
   if(isSubmitting) return;
+
+  /* 再カウント時：備考欄の入力必須チェック（送信前・isSubmittingセット前）*/
+  const isPrevExists=document.getElementById('prev-banner').classList.contains('show');
+  const noteVal=document.getElementById('note-ta').value.trim();
+  if(isPrevExists&&!noteVal){
+    const noteTa=document.getElementById('note-ta');
+    noteTa.classList.add('error');
+    noteTa.scrollIntoView({behavior:'smooth',block:'center'});
+    noteTa.focus();
+    toast('再カウントの理由を備考に入力してください');
+    return;
+  }
+
   isSubmitting=true;
 
   /* オーバーレイ表示（画面全体をブロック）*/
@@ -669,7 +689,10 @@ function goScan(){currentItem=null;selectedTeam=null;timestamp=null;renderQueueB
 document.getElementById('jan-input').addEventListener('keydown',e=>{if(e.key==='Enter')searchByJAN()});
 document.getElementById('sku-input').addEventListener('keydown',e=>{if(e.key==='Enter')searchBySKU()});
 document.getElementById('list-search').addEventListener('input',renderItemList);
-document.getElementById('note-ta').addEventListener('input',function(){document.getElementById('note-count').textContent=this.value.length});
+document.getElementById('note-ta').addEventListener('input',function(){
+  document.getElementById('note-count').textContent=this.value.length;
+  if(this.value.trim())this.classList.remove('error');
+});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeGSModal();closeQueueSheet()}});
 
 (async()=>{
