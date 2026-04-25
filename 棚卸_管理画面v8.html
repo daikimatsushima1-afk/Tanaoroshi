@@ -456,7 +456,7 @@ function fmtDate(d){const p=n=>String(n).padStart(2,'0');return`${d.getFullYear(
 function toast(msg,dur=2800){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur)}
 function getBaseUrl(){const u=localStorage.getItem(K.ghUser)||'',r=localStorage.getItem(K.ghRepo)||'';return u&&r?`https://${u}.github.io/${r}`:(location.origin+location.pathname.replace(/\/[^/]*$/, ''))}
 function getInputUrl(){return getBaseUrl()+'/棚卸_入力画面v8.html'}
-function getCategories(){return ls(K.categories)||['文具・事務用品','電子機器','消耗品','梱包資材','清掃用品','食品','その他']}
+function getCategories(){return ls(K.categories)||['Safe','Padlock','Outlet']}
 /* HARDCODED_GS_URLが設定されていればそちらを優先、なければlocalStorage */
 function getGsUrl(){return HARDCODED_GS_URL||localStorage.getItem(K.gs)||''}
 
@@ -494,13 +494,8 @@ function uploadLogo(){
 
 /* ===== 初期化 ===== */
 function initData(){
-  if(!ls(K.categories)) lset(K.categories,['文具・事務用品','電子機器','消耗品','梱包資材','清掃用品','食品','その他']);
-  if(!ls(K.master)){
-    lset(K.master,[
-      {id:'SKU-001',sku:'SKU-001',name:'A4コピー用紙 500枚',jan:'4901480237878',category:'文具・事務用品',shelf:'A-1-1',pqty:500,pqty2:null,unit:'枚',bookStock:12000},
-      {id:'SKU-002',sku:'SKU-002',name:'ボールペン 黒 12本入',jan:'4902506385054',category:'文具・事務用品',shelf:'B-2-3',pqty:12,pqty2:null,unit:'本',bookStock:240},
-    ]);
-  }
+  if(!ls(K.categories)) lset(K.categories,['Safe','Padlock','Outlet']);
+  if(!ls(K.master)) lset(K.master,[]);
   if(!ls(K.users)) lset(K.users,[{name:'山田 太郎',team:'チームA'},{name:'鈴木 一郎',team:'チームB'}]);
   const gsUrl=getGsUrl();
   if(gsUrl){setBanner('info','Google Sheets接続中...');loadRecordsFromSheets()}
