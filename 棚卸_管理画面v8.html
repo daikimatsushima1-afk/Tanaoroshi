@@ -79,6 +79,22 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--paper3);color:var(--
 .action-card.ac-amber{border-left:4px solid #d97706}
 .action-card.ac-green{border-left:4px solid var(--accent)}
 .action-card.ac-info{border-left:4px solid var(--info)}
+.action-card.ac-purple{border-left:4px solid #7c3aed}
+.ac-val.purple{color:#7c3aed}
+
+/* カテゴリ別小型メーター */
+.cat-meters{width:100%;margin-top:16px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--border);padding-top:14px}
+.cat-meter-row{display:flex;align-items:center;gap:10px}
+.cat-meter-wrap{position:relative;width:52px;height:52px;flex-shrink:0}
+.cat-meter-svg{width:52px;height:52px;transform:rotate(-90deg)}
+.cat-meter-bg{fill:none;stroke:var(--paper3);stroke-width:6}
+.cat-meter-fill{fill:none;stroke:var(--accent);stroke-width:6;stroke-linecap:round;transition:stroke-dashoffset .8s cubic-bezier(.4,0,.2,1)}
+.cat-meter-fill.low{stroke:var(--warn)}
+.cat-meter-fill.amber{stroke:#d97706}
+.cat-meter-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--ink)}
+.cat-meter-info{flex:1;min-width:0}
+.cat-meter-name{font-size:12px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cat-meter-sub{font-size:11px;color:var(--ink3);font-family:'IBM Plex Mono',monospace;margin-top:1px}
 .ac-label{font-size:11px;color:var(--ink3);font-family:'IBM Plex Mono',monospace}
 .ac-val{font-size:32px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1}
 .ac-val.red{color:var(--warn)}
@@ -197,9 +213,9 @@ tr.row-void{border-left:3px solid #ccc8be}
 <!-- ===== ダッシュボード ===== -->
 <div id="page-dashboard" class="page active">
 
-  <!-- 上段：円形メーター + 行動カード -->
+  <!-- 上段：全体メーター + カテゴリメーター群 + 行動カード -->
   <div class="dash-top">
-    <!-- 円形プログレスメーター -->
+    <!-- 全体円形プログレスメーター -->
     <div class="meter-card">
       <div class="meter-title">全体進捗</div>
       <div class="meter-wrap">
@@ -213,29 +229,26 @@ tr.row-void{border-left:3px solid #ccc8be}
         </div>
       </div>
       <div class="meter-sub" id="meter-sub">データを読み込み中...</div>
+      <!-- カテゴリ別円形メーター群 -->
+      <div class="cat-meters" id="cat-meters"></div>
     </div>
 
-    <!-- 行動カード4枚 -->
+    <!-- 行動カード3枚 -->
     <div class="action-grid">
       <div class="action-card ac-red">
         <div class="ac-label">未入力件数</div>
         <div class="ac-val red" id="ac-missing">—</div>
         <div class="ac-sub" id="ac-missing-sub">商品マスタとの差分</div>
       </div>
-      <div class="action-card ac-amber">
-        <div class="ac-label">要確認（±10%超）</div>
-        <div class="ac-val amber" id="ac-large">—</div>
-        <div class="ac-sub">帳簿在庫との大きな乖離</div>
-      </div>
       <div class="action-card ac-info">
         <div class="ac-label">差異あり件数</div>
         <div class="ac-val info" id="ac-diff">—</div>
         <div class="ac-sub">帳簿在庫と一致しない商品</div>
       </div>
-      <div class="action-card ac-green">
-        <div class="ac-label">今日の入力件数</div>
-        <div class="ac-val green" id="ac-today">—</div>
-        <div class="ac-sub" id="ac-void-note">— 件再登録あり</div>
+      <div class="action-card ac-purple">
+        <div class="ac-label">本日の再カウント率</div>
+        <div class="ac-val purple" id="ac-recount">—</div>
+        <div class="ac-sub" id="ac-recount-sub">本日の入力における再登録割合</div>
       </div>
     </div>
   </div>
@@ -270,7 +283,7 @@ tr.row-void{border-left:3px solid #ccc8be}
       <div class="card-body" style="padding:0">
         <div class="tbl-wrap">
           <table id="recent-tbl">
-            <thead><tr><th>時刻</th><th>品名</th><th>合計</th><th>チーム</th><th>入力者</th></tr></thead>
+            <thead><tr><th>時刻</th><th>品名</th><th>合計</th><th>チーム</th><th>入力者</th><th>備考</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -453,6 +466,25 @@ function lset(k,v){localStorage.setItem(k,JSON.stringify(v))}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function fmtTs(d){const p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`}
 function fmtDate(d){const p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`}
+
+/* timestampの正規化：Sheetsから様々な形式で返ってくるtimestampを
+   "YYYY/MM/DD HH:MM:SS" に統一する
+   対応形式: "Sat Apr 25 2026 23:43:08 GMT+0900 ..." / "2026/04/25 21:24:09" / "2026-01-01 12:00:00" */
+function normalizeTimestamp(ts){
+  if(!ts)return'';
+  const s=String(ts);
+  /* すでに "YYYY/MM/DD" または "YYYY-MM-DD" 形式なら最初の19文字を使いスラッシュに統一 */
+  if(/^\d{4}[-\/]/.test(s))return s.slice(0,19).replace(/-/g,'/');
+  /* "Sat Apr 25 2026 23:43:08 ..." のようなDate.toString()形式をパース */
+  try{
+    const d=new Date(s);
+    if(!isNaN(d)){
+      const p=n=>String(n).padStart(2,'0');
+      return`${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    }
+  }catch(e){}
+  return s;
+}
 function toast(msg,dur=2800){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur)}
 function getBaseUrl(){const u=localStorage.getItem(K.ghUser)||'',r=localStorage.getItem(K.ghRepo)||'';return u&&r?`https://${u}.github.io/${r}`:(location.origin+location.pathname.replace(/\/[^/]*$/, ''))}
 function getInputUrl(){return getBaseUrl()+'/棚卸_入力画面v8.html'}
@@ -514,6 +546,8 @@ async function loadRecordsFromSheets(){
     const data=await res.json();
     if(data.status!=='ok') throw new Error(data.message||'不明なエラー');
     sheetsRecords=data.records||[];
+    /* timestampを全件正規化（GASがDate型で返す場合の文字列変換対応）*/
+    sheetsRecords=sheetsRecords.map(r=>({...r,timestamp:normalizeTimestamp(r.timestamp)}));
     const activeCount=sheetsRecords.filter(r=>r.status==='active').length;
     setBanner('ok',`✓ Sheets接続済 — ${sheetsRecords.length}件読み込み（有効:${activeCount}件）— ${new Date().toLocaleTimeString('ja-JP')}`);
     const activePage=document.querySelector('.page.active');
@@ -541,18 +575,17 @@ function switchPage(name,btn){
   if(name==='settings') renderSettings();
 }
 
-/* ===== ダッシュボード（再設計）===== */
+/* ===== ダッシュボード ===== */
 function renderDashboard(){
   const items=ls(K.master)||[];
   const activeRecs=sheetsRecords.filter(r=>r.status==='active');
-  const voidRecs=sheetsRecords.filter(r=>r.status==='void');
   const done=new Set(activeRecs.map(r=>r.sku));
   const total=items.length;
   const doneCount=done.size;
   const pct=total?Math.round(doneCount/total*100):0;
 
-  /* 円形メーター更新 */
-  const circumference=2*Math.PI*70; // r=70
+  /* 全体円形メーター */
+  const circumference=2*Math.PI*70;
   const offset=circumference*(1-pct/100);
   const fillEl=document.getElementById('meter-fill');
   fillEl.style.strokeDasharray=circumference;
@@ -561,51 +594,73 @@ function renderDashboard(){
   document.getElementById('meter-pct').textContent=pct+'%';
   document.getElementById('meter-sub').innerHTML=`<strong>${doneCount}</strong> / <strong>${total}</strong> 件完了`;
 
-  /* 差異分析（行動カード用）*/
+  /* カテゴリ別小型メーター */
+  const cats=getCategories();
+  const r=2*Math.PI*20; // r=20 の小型メーター
+  document.getElementById('cat-meters').innerHTML=cats.map(cat=>{
+    const catItems=items.filter(i=>i.category===cat);
+    const catDone=catItems.filter(i=>done.has(i.sku)).length;
+    const catTotal=catItems.length;
+    const catPct=catTotal?Math.round(catDone/catTotal*100):0;
+    const catOffset=r*(1-catPct/100);
+    const fillCls=catPct<30?'low':catPct<70?'amber':'';
+    return`<div class="cat-meter-row">
+      <div class="cat-meter-wrap">
+        <svg class="cat-meter-svg" viewBox="0 0 52 52">
+          <circle class="cat-meter-bg" cx="26" cy="26" r="20"/>
+          <circle class="cat-meter-fill ${fillCls}" cx="26" cy="26" r="20"
+            style="stroke-dasharray:${r};stroke-dashoffset:${catOffset}"/>
+        </svg>
+        <div class="cat-meter-center">${catPct}%</div>
+      </div>
+      <div class="cat-meter-info">
+        <div class="cat-meter-name">${esc(cat)}</div>
+        <div class="cat-meter-sub">${catDone} / ${catTotal} 件</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  /* 差異あり件数 */
   const latestMap={};activeRecs.forEach(r=>{if(!latestMap[r.sku]||r.timestamp>latestMap[r.sku].timestamp)latestMap[r.sku]=r});
-  let diffCount=0,largeCount=0;
+  let diffCount=0;
   items.forEach(item=>{
     const rec=latestMap[item.sku];if(!rec)return;
-    const book=item.bookStock||0;const diff=rec.total-book;
-    if(diff!==0)diffCount++;
-    if(book&&Math.abs(diff)>book*0.1)largeCount++;
+    if(rec.total-(item.bookStock||0)!==0)diffCount++;
   });
 
-  /* 今日の入力件数（voidも含めた今日のsheetsRecords）*/
+  /* 本日の再カウント率 */
   const today=fmtDate(new Date());
-  const todayAll=sheetsRecords.filter(r=>r.timestamp&&r.timestamp.startsWith(today));
-  const todayVoid=todayAll.filter(r=>r.status==='void').length;
+  const todayRecs=sheetsRecords.filter(r=>r.timestamp&&r.timestamp.startsWith(today));
+  const todayActive=todayRecs.filter(r=>r.status==='active').length;
+  const todayVoid=todayRecs.filter(r=>r.status==='void').length;
+  const recountPct=todayActive?Math.round(todayVoid/todayActive*100):0;
 
+  /* 行動カード更新 */
   document.getElementById('ac-missing').textContent=total-doneCount;
   document.getElementById('ac-missing-sub').textContent=(total-doneCount)+' 件が未入力';
-  document.getElementById('ac-large').textContent=largeCount;
   document.getElementById('ac-diff').textContent=diffCount;
-  document.getElementById('ac-today').textContent=todayAll.filter(r=>r.status==='active').length;
-  document.getElementById('ac-void-note').textContent=todayVoid>0?`うち ${todayVoid} 件再登録あり`:'再登録なし';
+  document.getElementById('ac-recount').textContent=todayActive?recountPct+'%':'—';
+  document.getElementById('ac-recount-sub').textContent=todayActive
+    ?`本日 ${todayVoid} 件再登録 / ${todayActive} 件入力`
+    :'本日の入力なし';
 
   /* チーム別進捗（横バー）*/
   document.getElementById('team-bars').innerHTML=['チームA','チームB','チームC','チームD'].map(t=>{
-    const teamRecs=activeRecs.filter(r=>r.team===t);
-    const teamDone=teamRecs.length;
+    const teamDone=activeRecs.filter(r=>r.team===t).length;
     const teamVoidToday=sheetsRecords.filter(r=>r.team===t&&r.status==='void'&&r.timestamp&&r.timestamp.startsWith(today)).length;
-    /* チームが担当する商品数はマスタ参照では不明なため全体比率で表示 */
     const pctT=total?Math.min(100,Math.round(teamDone/total*100)):0;
     const fillClass=pctT<30?'low':pctT<70?'amber':'';
     return`<div class="team-bar-card">
-      <div class="tb-name">
-        <span>${t}</span>
-        <span class="tb-count">${teamDone} 件</span>
-      </div>
+      <div class="tb-name"><span>${t}</span><span class="tb-count">${teamDone} 件</span></div>
       <div class="prog-bar"><div class="prog-fill ${fillClass}" style="width:${pctT}%"></div></div>
       ${teamVoidToday>0?`<div class="tb-void-note">本日 ${teamVoidToday} 件再登録</div>`:''}
     </div>`;
   }).join('');
 
-  /* 未入力サンプル（デフォルト10件、展開で全件）*/
+  /* 未入力サンプル */
   const missing=items.filter(i=>!done.has(i.sku));
   const showCount=missingShowAll?missing.length:Math.min(10,missing.length);
-  const tbody=document.querySelector('#missing-tbl tbody');
-  tbody.innerHTML=missing.slice(0,showCount).map(i=>`<tr>
+  document.querySelector('#missing-tbl tbody').innerHTML=missing.slice(0,showCount).map(i=>`<tr>
     <td class="td-mono">${esc(i.sku)}</td>
     <td>${esc(i.name)}</td>
     <td class="td-mono">${esc(i.shelf||'—')}</td>
@@ -614,20 +669,21 @@ function renderDashboard(){
   if(missing.length>10){
     moreEl.style.display='';
     document.getElementById('missing-more-txt').textContent=
-      missingShowAll?`▲ 折りたたむ`:`▼ 残り ${missing.length-10} 件を表示`;
-  } else {moreEl.style.display='none'}
+      missingShowAll?'▲ 折りたたむ':`▼ 残り ${missing.length-10} 件を表示`;
+  }else{moreEl.style.display='none'}
 
-  /* 最近の入力 */
+  /* 最近の入力（直近10件・備考付き6列）*/
   document.querySelector('#recent-tbl tbody').innerHTML=[...activeRecs]
     .sort((a,b)=>b.timestamp.localeCompare(a.timestamp))
     .slice(0,10)
     .map(r=>`<tr>
-      <td class="td-mono">${esc(r.timestamp.slice(11,19))}</td>
+      <td class="td-mono">${esc(r.timestamp.slice(0,16))}</td>
       <td>${esc(r.name)}</td>
       <td class="td-mono">${Number(r.total).toLocaleString()} ${esc(r.unit)}</td>
       <td><span class="td-badge badge-info">${esc(r.team)}</span></td>
       <td>${esc(r.inputUser)}</td>
-    </tr>`).join('')||`<tr><td colspan="5" class="empty">記録なし — 「🔄 今すぐ更新」を押してください</td></tr>`;
+      <td><div class="note-cell" title="${esc(r.note||'')}">${esc(r.note||'—')}</div></td>
+    </tr>`).join('')||`<tr><td colspan="6" class="empty">記録なし — 「🔄 記録を読み込む」を押してください</td></tr>`;
 }
 
 function toggleMissingAll(){
