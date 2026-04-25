@@ -1476,9 +1476,6 @@
     "Padlock",
     "Outlet"
   ],
-  "inv": {
-    "date": "2026-04-16",
-    "description": "棚卸"
-  },
-  "updatedAt": "2026-04-23 18:05:44"
+  "inv": {},
+  "updatedAt": "2026-04-25 18:37:14"
 }
