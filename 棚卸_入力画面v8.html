@@ -633,7 +633,7 @@ async function submitRecord(){
       inputUser:document.getElementById('input-user').value,
       verifyUser:document.getElementById('verify-user').value||'',
       timestamp:fmtTs(timestamp),
-      invDate:new Date().toISOString().slice(0,10),
+      invDate:(()=>{const d=new Date();const p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())}`})(),
       note,status:'active',createdAt:fmtTs(new Date())
     };
 
@@ -709,7 +709,8 @@ document.getElementById('note-ta').addEventListener('input',function(){
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeGSModal();closeQueueSheet()}});
 
 (async()=>{
-  document.getElementById('inv-date-display').textContent=new Date().toISOString().slice(0,10);
+  const _d=new Date(),_p=n=>String(n).padStart(2,'0');
+  document.getElementById('inv-date-display').textContent=`${_d.getFullYear()}/${_p(_d.getMonth()+1)}/${_p(_d.getDate())}`;
   updateGsStatus();
   await loadMasterData();
   renderQueueBadge();
