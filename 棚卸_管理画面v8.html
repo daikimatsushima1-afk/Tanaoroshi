@@ -465,7 +465,7 @@ function ls(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch{retu
 function lset(k,v){localStorage.setItem(k,JSON.stringify(v))}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function fmtTs(d){const p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`}
-function fmtDate(d){const p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`}
+function fmtDate(d){const p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())}`}
 
 /* timestampの正規化：Sheetsから様々な形式で返ってくるtimestampを
    "YYYY/MM/DD HH:MM:SS" に統一する
