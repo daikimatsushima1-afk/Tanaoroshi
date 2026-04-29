@@ -155,6 +155,11 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--paper);color:var(--i
 /* v9: セッション表示 */
 .session-display{background:var(--accent-l,#e8f0f7);border-bottom:2px solid var(--accent,#1a5c8a);padding:8px 16px;font-size:12px;font-weight:700;color:var(--accent,#1a5c8a);font-family:'IBM Plex Mono',monospace;letter-spacing:.04em;flex-shrink:0;display:none}
 .session-display.show{display:block}
+/* v9: スキャン画面TOPのセッションバー */
+.scan-session-bar{display:none;align-items:center;gap:8px;background:var(--accent-l,#e8f0f7);border:1.5px solid var(--accent,#1a5c8a);border-radius:var(--r);padding:9px 14px;width:100%;max-width:320px;box-sizing:border-box;margin-bottom:4px}
+.scan-session-bar.show{display:flex}
+.scan-session-label{font-size:12px;font-weight:700;color:var(--accent,#1a5c8a);font-family:'IBM Plex Mono',monospace;flex:1;letter-spacing:.04em}
+.scan-session-refresh{background:none;border:1.5px solid var(--accent,#1a5c8a);border-radius:6px;color:var(--accent,#1a5c8a);font-size:11px;font-weight:700;padding:3px 10px;cursor:pointer;white-space:nowrap}
 .sending-box{
   background:var(--paper);
   border-radius:16px;
@@ -214,6 +219,11 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--paper);color:var(--i
   </div>
   <div class="scan-body">
     <div class="scan-hero"><h1>商品を選択</h1><p>バーコードをスキャン、またはリストから選択</p></div>
+    <!-- v9: セッションバー -->
+    <div class="scan-session-bar" id="scan-session-bar">
+      <span class="scan-session-label" id="scan-session-label">📦 セッション確認中...</span>
+      <button class="scan-session-refresh" onclick="retryGetActiveSession()">🔄 更新</button>
+    </div>
     <div id="qr-reader"></div>
     <div class="scan-status-box" id="scan-status">カメラボタンを押してバーコードをスキャン</div>
     <button class="btn-camera" id="btn-camera" onclick="toggleCamera()">
@@ -473,15 +483,19 @@ async function fetchActiveSession(){
   isSessionChecked=true;
 }
 
-/* セッション表示（タイムスタンプエリア上部）*/
+/* セッション表示（タイムスタンプエリア上部＋スキャン画面TOPバー）*/
 function showSessionDisplay(session){
-  const el=document.getElementById('session-display');
   const typeLabel=session.type==='ANNUAL'?'年末棚卸':'サイクルカウント';
   const label=session.type==='ANNUAL'
     ?`${typeLabel} ${session.year}年`
     :`${typeLabel} ${session.year}年${session.month}月`;
+  /* screen-input 内のセッション表示 */
+  const el=document.getElementById('session-display');
   el.textContent=`📦 ${label}`;
   el.classList.add('show');
+  /* スキャン画面TOPバー */
+  document.getElementById('scan-session-label').textContent=`📦 ${label}`;
+  document.getElementById('scan-session-bar').classList.add('show');
 }
 
 /* セッションブロックオーバーレイ表示 */
@@ -660,29 +674,6 @@ async function submitRecord(){
   /* 多重送信防止フラグ：既に送信中なら何もしない */
   if(isSubmitting) return;
 
-  /* v9: 送信直前にセッション状態を再確認（CLOSEDへの書き込みを物理的に防ぐ）*/
-  if(getGsUrl()&&activeSession){
-    try{
-      const chkRes=await fetch(`${getGsUrl()}?action=getActiveSession&t=${Date.now()}`);
-      const chkData=await chkRes.json();
-      if(chkData.status!=='ok'||!chkData.session){
-        /* セッションがCLOSEDまたは存在しない → ブロック */
-        activeSession=null;
-        showSessionBlock();
-        toast('セッションが終了しています。管理者に連絡してください');
-        return;
-      }
-      /* セッションIDが変わっていたら更新 */
-      if(chkData.session.sessionId!==activeSession.sessionId){
-        activeSession=chkData.session;
-        showSessionDisplay(activeSession);
-      }
-    }catch(e){
-      /* 通信失敗時はオフラインとみなして続行（キューに入る）*/
-      console.warn('セッション状態確認失敗（オフライン扱い）:',e.message);
-    }
-  }
-
   /* Sheets確認がまだ完了していない場合は待機を促す */
   if(!isPrevChecked){
     toast('前回データを確認中です。少し待ってから再度押してください');
@@ -702,19 +693,37 @@ async function submitRecord(){
     }
   }
 
+  /* ===== ここから先は isSubmitting=true でブロック ===== */
   isSubmitting=true;
 
-  /* オーバーレイ表示（画面全体をブロック）*/
+  /* オーバーレイを即座に表示（連続タップを物理ブロック）*/
   const overlay=document.getElementById('sending-overlay');
   overlay.classList.add('show');
 
-  /* オーバーレイを必ず閉じてフラグを解除するヘルパー */
-  function hideSending(){
-    overlay.classList.remove('show');
-    isSubmitting=false;
-  }
+  function hideSending(){overlay.classList.remove('show');isSubmitting=false;}
 
   try{
+    /* v9: オーバーレイ表示後にセッション状態を確認（CLOSEDへの書き込みを防ぐ）
+       通信失敗時はオフライン扱いで続行（キューに入る）*/
+    if(getGsUrl()&&activeSession){
+      try{
+        const chkRes=await fetch(`${getGsUrl()}?action=getActiveSession&t=${Date.now()}`);
+        const chkData=await chkRes.json();
+        if(chkData.status!=='ok'||!chkData.session){
+          hideSending();
+          activeSession=null;
+          showSessionBlock();
+          toast('セッションが終了しています。管理者に連絡してください');
+          return;
+        }
+        if(chkData.session.sessionId!==activeSession.sessionId){
+          activeSession=chkData.session;
+          showSessionDisplay(activeSession);
+        }
+      }catch(e){
+        console.warn('セッション状態確認失敗（オフライン扱い）:',e.message);
+      }
+    }
     const unit=currentItem.unit||'個';
     const bare=parseInt(document.getElementById('bare-val').value)||0;
     const note=document.getElementById('note-ta').value.trim();
