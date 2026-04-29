@@ -479,51 +479,6 @@ tr.row-void{border-left:3px solid #ccc8be}
         <div style="color:var(--ink3);font-size:13px">読み込み中...</div>
       </div>
 
-      <!-- 選択中セッションのSessionItems -->
-      <div class="session-items-panel" id="session-items-panel" style="display:none">
-        <div class="session-items-title">📋 対象アイテム（<span id="si-session-label"></span>）</div>
-
-        <!-- アイテム追加フォーム -->
-        <div id="si-add-area">
-          <div class="si-add-form" id="si-add-form">
-            <div class="fg" style="margin:0">
-              <label class="fl">SKU</label>
-              <select id="si-sku" class="fi" onchange="onSiSkuChange()">
-                <option value="">— SKUを選択 —</option>
-              </select>
-            </div>
-            <div class="fg" style="margin:0">
-              <label class="fl">カテゴリ</label>
-              <input id="si-category" class="fi" readonly>
-            </div>
-            <div class="fg" style="margin:0">
-              <label class="fl">帳簿数量</label>
-              <input id="si-book-qty" class="fi" type="number" min="0" placeholder="0">
-            </div>
-            <div class="fg" style="margin:0">
-              <label class="fl">棚番</label>
-              <input id="si-location" class="fi" placeholder="A-1-1">
-            </div>
-            <button class="btn btn-primary" onclick="addSessionItem()" style="margin-top:auto">追加</button>
-          </div>
-          <div id="si-reason-wrap" style="display:none;margin-bottom:10px">
-            <div class="fg" style="margin:0">
-              <label class="fl">追加理由（ACTIVE後追加・必須）</label>
-              <input id="si-reason" class="fi" placeholder="例: 追加発注品が棚卸対象に">
-            </div>
-          </div>
-        </div>
-
-        <!-- アイテム一覧テーブル -->
-        <div class="tbl-wrap">
-          <table id="si-tbl">
-            <thead>
-              <tr><th>SKU</th><th>カテゴリ</th><th>帳簿数量</th><th>棚番</th><th>追加区分</th><th></th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -601,8 +556,6 @@ let sheetsRecords=[];          // Sheetsから取得した記録（メモリ上�
 let missingShowAll=false;      // 未入力一覧の展開状態
 let allSessions=[];            // InventorySessions一覧（v9）
 let currentSessionId='';       // 選択中sessionId（v9）
-let sessionItems=[];           // 選択中セッションのSessionItems（v9）
-let managingSessionId='';      // 設定タブで管理中のsessionId（v9）
 
 function ls(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch{return null}}
 function lset(k,v){localStorage.setItem(k,JSON.stringify(v))}
@@ -815,7 +768,6 @@ function renderSessionList(){
       <div class="session-row-meta">${esc(sessionLabel(s))}</div>
       <span class="${badgeCls}">${s.status}</span>
       <div class="session-row-actions">
-        <button class="btn btn-sm" onclick="openSessionItems('${esc(s.sessionId)}')">アイテム管理</button>
         ${isDraft?`<button class="btn btn-sm btn-primary" onclick="confirmActivate('${esc(s.sessionId)}')">ACTIVE化</button>`:''}
         ${isActive?`<button class="btn btn-sm" style="background:var(--warn);color:#fff;border:none" onclick="confirmClose('${esc(s.sessionId)}')">終了（CLOSED）</button>`:''}
       </div>
@@ -859,12 +811,6 @@ function confirmActivate(sessionId){
 }
 async function activateSession(sessionId){
   const gsUrl=getGsUrl();if(!gsUrl)return;
-  /* SessionItemsが登録されているか確認 */
-  const siRes=await fetch(`${getGsUrl()}?action=getSessionItems&sessionId=${encodeURIComponent(sessionId)}&t=${Date.now()}`);
-  const siData=await siRes.json();
-  if(!siData.items||!siData.items.length){
-    if(!confirm('対象アイテムが登録されていません。このままACTIVE化しますか？'))return;
-  }
   try{
     const res=await fetch(gsUrl,{method:'POST',body:JSON.stringify({_action:'activateSession',sessionId})});
     const data=await res.json();
@@ -888,112 +834,6 @@ async function closeSession(sessionId){
     toast(`${sessionId} をCLOSEDにしました`);
     await loadSessions();
   }catch(e){toast('CLOSED化失敗: '+e.message)}
-}
-
-/* SessionItems管理パネルを開く */
-async function openSessionItems(sessionId){
-  managingSessionId=sessionId;
-  const s=allSessions.find(s=>s.sessionId===sessionId);
-  document.getElementById('si-session-label').textContent=sessionLabel(s);
-  document.getElementById('session-items-panel').style.display='';
-
-  /* ACTIVEかどうかで追加フォームの表示制御 */
-  const isClosed=s&&s.status==='CLOSED';
-  const isAfterLock=s&&s.status==='ACTIVE';
-  document.getElementById('si-add-area').style.display=isClosed?'none':'';
-  document.getElementById('si-reason-wrap').style.display=isAfterLock?'':'none';
-
-  /* SKUセレクト構築 */
-  const masterItems=ls(K.master)||[];
-  const siSkuEl=document.getElementById('si-sku');
-  siSkuEl.innerHTML='<option value="">— SKUを選択 —</option>'+
-    masterItems.map(i=>`<option value="${esc(i.sku)}">${esc(i.sku)} ${esc(i.name)}</option>`).join('');
-
-  await refreshSessionItems(sessionId);
-}
-
-/* SessionItems再取得・テーブル描画 */
-async function refreshSessionItems(sessionId){
-  const gsUrl=getGsUrl();if(!gsUrl)return;
-  try{
-    const res=await fetch(`${gsUrl}?action=getSessionItems&sessionId=${encodeURIComponent(sessionId)}&t=${Date.now()}`);
-    const data=await res.json();
-    sessionItems=data.items||[];
-    renderSessionItemsTable(sessionId);
-  }catch(e){toast('アイテム取得失敗: '+e.message)}
-}
-
-/* SessionItems テーブル描画 */
-function renderSessionItemsTable(sessionId){
-  const s=allSessions.find(s=>s.sessionId===sessionId);
-  const isClosed=s&&s.status==='CLOSED';
-  const isDraft=s&&s.status==='DRAFT';
-  document.querySelector('#si-tbl tbody').innerHTML=sessionItems.length
-    ?sessionItems.map(item=>`<tr>
-        <td class="td-mono">${esc(item.sku)}</td>
-        <td>${esc(item.category)}</td>
-        <td class="td-mono">${Number(item.book_qty).toLocaleString()}</td>
-        <td class="td-mono">${esc(item.location||'—')}</td>
-        <td>${item.is_added_after_lock?'<span class="badge-draft">ACTIVE後追加</span>':'通常'}</td>
-        <td>${isDraft?`<button class="btn btn-sm" style="background:var(--danger,#d32f2f);color:#fff;border:none" onclick="deleteSessionItem('${esc(sessionId)}','${esc(item.sku)}')">削除</button>`:'—'}</td>
-      </tr>`).join('')
-    :`<tr><td colspan="6" class="empty">アイテム未登録</td></tr>`;
-}
-
-/* SKU選択時にカテゴリを自動補完 */
-function onSiSkuChange(){
-  const sku=document.getElementById('si-sku').value;
-  const item=(ls(K.master)||[]).find(i=>i.sku===sku);
-  document.getElementById('si-category').value=item?item.category||'':'';
-}
-
-/* SessionItem追加 */
-async function addSessionItem(){
-  const sku=document.getElementById('si-sku').value;
-  const bookQty=parseInt(document.getElementById('si-book-qty').value)||0;
-  const location=document.getElementById('si-location').value.trim();
-  const reason=document.getElementById('si-reason').value.trim();
-  const s=allSessions.find(s=>s.sessionId===managingSessionId);
-  if(!sku){toast('SKUを選択してください');return}
-  if(s&&s.status==='ACTIVE'&&!reason){toast('ACTIVE後の追加は理由を入力してください');return}
-  const gsUrl=getGsUrl();if(!gsUrl)return;
-  const item=(ls(K.master)||[]).find(i=>i.sku===sku);
-  try{
-    const res=await fetch(gsUrl,{method:'POST',body:JSON.stringify({
-      _action:'addSessionItem',
-      sessionId:managingSessionId,
-      sku,
-      category:item?item.category||'':'',
-      book_qty:bookQty,
-      location,
-      addedBy:document.getElementById('sess-creator').value.trim()||'管理者',
-      addReason:reason,
-      book_qty_basis:'MATCHED',
-    })});
-    const data=await res.json();
-    if(data.status!=='ok')throw new Error(data.message||'エラー');
-    toast('アイテムを追加しました');
-    document.getElementById('si-sku').value='';
-    document.getElementById('si-book-qty').value='';
-    document.getElementById('si-location').value='';
-    document.getElementById('si-reason').value='';
-    await refreshSessionItems(managingSessionId);
-  }catch(e){toast('追加失敗: '+e.message)}
-}
-
-/* SessionItem削除（DRAFTのみ）*/
-async function deleteSessionItem(sessionId,sku){
-  if(!confirm(`${sku} を削除しますか？`))return;
-  const gsUrl=getGsUrl();if(!gsUrl)return;
-  try{
-    const res=await fetch(gsUrl,{method:'POST',body:JSON.stringify({
-      _action:'deleteSessionItem',sessionId,sku,deletedBy:'管理者'
-    })});
-    const data=await res.json();
-    if(data.status!=='ok')throw new Error(data.message||'エラー');
-    toast('削除しました');
-    await refreshSessionItems(sessionId);
-  }catch(e){toast('削除失敗: '+e.message)}
 }
 
 /* セッション別推移テーブル描画 */
@@ -1093,32 +933,35 @@ function renderDashboard(){
     if(rec.total-(item.bookStock||0)!==0)diffCount++;
   });
 
-  /* 本日の再カウント率 */
+  /* 本日のtoday（チーム別進捗バー用）*/
   const today=fmtDate(new Date());
-  const todayRecs=sheetsRecords.filter(r=>r.timestamp&&r.timestamp.startsWith(today));
-  const todayActive=todayRecs.filter(r=>r.status==='active').length;
-  const todayVoid=todayRecs.filter(r=>r.status==='void').length;
-  const recountPct=todayActive?Math.round(todayVoid/todayActive*100):0;
+
+  /* 再カウント率：セッション基準（日付依存を廃止）
+     選択中セッションのvoid件数 / active件数 で算出 */
+  const sessionVoidRecs=sessionRecs.filter(r=>r.status==='void');
+  const sessionActiveRecs=activeRecs; // 上で定義済み
+  const recountPct=sessionActiveRecs.length
+    ?Math.round(sessionVoidRecs.length/sessionActiveRecs.length*100):0;
 
   /* 行動カード更新 */
   document.getElementById('ac-missing').textContent=total-doneCount;
   document.getElementById('ac-missing-sub').textContent=(total-doneCount)+' 件が未入力';
   document.getElementById('ac-diff').textContent=diffCount;
-  document.getElementById('ac-recount').textContent=todayActive?recountPct+'%':'—';
-  document.getElementById('ac-recount-sub').textContent=todayActive
-    ?`本日 ${todayVoid} 件再登録 / ${todayActive} 件入力`
-    :'本日の入力なし';
+  document.getElementById('ac-recount').textContent=sessionActiveRecs.length?recountPct+'%':'—';
+  document.getElementById('ac-recount-sub').textContent=sessionActiveRecs.length
+    ?`${sessionVoidRecs.length} 件再登録 / ${sessionActiveRecs.length} 件入力`
+    :'入力データなし';
 
   /* チーム別進捗（横バー）*/
   document.getElementById('team-bars').innerHTML=['チームA','チームB','チームC','チームD'].map(t=>{
     const teamDone=activeRecs.filter(r=>r.team===t).length;
-    const teamVoidToday=sheetsRecords.filter(r=>r.team===t&&r.status==='void'&&r.timestamp&&r.timestamp.startsWith(today)).length;
+    const teamVoidInSession=sessionRecs.filter(r=>r.team===t&&r.status==='void').length;
     const pctT=total?Math.min(100,Math.round(teamDone/total*100)):0;
     const fillClass=pctT<30?'low':pctT<70?'amber':'';
     return`<div class="team-bar-card">
       <div class="tb-name"><span>${t}</span><span class="tb-count">${teamDone} 件</span></div>
       <div class="prog-bar"><div class="prog-fill ${fillClass}" style="width:${pctT}%"></div></div>
-      ${teamVoidToday>0?`<div class="tb-void-note">本日 ${teamVoidToday} 件再登録</div>`:''}
+      ${teamVoidInSession>0?`<div class="tb-void-note">${teamVoidInSession} 件再登録あり</div>`:''}
     </div>`;
   }).join('');
 
