@@ -660,6 +660,29 @@ async function submitRecord(){
   /* 多重送信防止フラグ：既に送信中なら何もしない */
   if(isSubmitting) return;
 
+  /* v9: 送信直前にセッション状態を再確認（CLOSEDへの書き込みを物理的に防ぐ）*/
+  if(getGsUrl()&&activeSession){
+    try{
+      const chkRes=await fetch(`${getGsUrl()}?action=getActiveSession&t=${Date.now()}`);
+      const chkData=await chkRes.json();
+      if(chkData.status!=='ok'||!chkData.session){
+        /* セッションがCLOSEDまたは存在しない → ブロック */
+        activeSession=null;
+        showSessionBlock();
+        toast('セッションが終了しています。管理者に連絡してください');
+        return;
+      }
+      /* セッションIDが変わっていたら更新 */
+      if(chkData.session.sessionId!==activeSession.sessionId){
+        activeSession=chkData.session;
+        showSessionDisplay(activeSession);
+      }
+    }catch(e){
+      /* 通信失敗時はオフラインとみなして続行（キューに入る）*/
+      console.warn('セッション状態確認失敗（オフライン扱い）:',e.message);
+    }
+  }
+
   /* Sheets確認がまだ完了していない場合は待機を促す */
   if(!isPrevChecked){
     toast('前回データを確認中です。少し待ってから再度押してください');
