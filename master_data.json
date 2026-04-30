@@ -1,76 +1,28 @@
 {
   "items": [
     {
-      "id": "CFW30200",
-      "sku": "CFW30200",
-      "name": "CFW30200",
-      "jan": "49074025120",
+      "id": "JBS-F310",
+      "sku": "JBS-F310",
+      "name": "JBS-F310",
+      "jan": "4580453651319",
       "category": "Safe",
-      "shelf": "G-03",
-      "pqty": 24,
-      "pqty2": 2,
-      "unit": "台",
-      "bookStock": 77
-    },
-    {
-      "id": "CHW20101",
-      "sku": "CHW20101",
-      "name": "CHW20101",
-      "jan": "49074022402",
-      "category": "Safe",
-      "shelf": "G-05",
-      "pqty": 24,
-      "pqty2": 2,
+      "shelf": "B-18",
+      "pqty": 8,
+      "pqty2": 12,
       "unit": "台",
       "bookStock": 100
     },
     {
-      "id": "CHW20121",
-      "sku": "CHW20121",
-      "name": "CHW20121",
-      "jan": "49074023409",
+      "id": "JBS-K310",
+      "sku": "JBS-K310",
+      "name": "JBS-K310",
+      "jan": "4580453651012",
       "category": "Safe",
-      "shelf": "G-01",
-      "pqty": 24,
-      "pqty2": 2,
+      "shelf": "B-19",
+      "pqty": 8,
+      "pqty2": 12,
       "unit": "台",
-      "bookStock": 48
-    },
-    {
-      "id": "CHW20201",
-      "sku": "CHW20201",
-      "name": "CHW20201",
-      "jan": "49074024802",
-      "category": "Safe",
-      "shelf": "G-02",
-      "pqty": 24,
-      "pqty2": 2,
-      "unit": "台",
-      "bookStock": 96
-    },
-    {
-      "id": "CHW30100",
-      "sku": "CHW30100",
-      "name": "CHW30100",
-      "jan": "49074022426",
-      "category": "Safe",
-      "shelf": "G-04",
-      "pqty": 24,
-      "pqty2": 2,
-      "unit": "台",
-      "bookStock": 48
-    },
-    {
-      "id": "CHW30200",
-      "sku": "CHW30200",
-      "name": "CHW30200",
-      "jan": "49074023447",
-      "category": "Safe",
-      "shelf": "G-06",
-      "pqty": 24,
-      "pqty2": 2,
-      "unit": "台",
-      "bookStock": 144
+      "bookStock": 120
     }
   ],
   "users": [
@@ -97,5 +49,5 @@
     "Outlet"
   ],
   "inv": {},
-  "updatedAt": "2026-04-30 16:33:13"
+  "updatedAt": "2026-04-30 16:53:28"
 }
