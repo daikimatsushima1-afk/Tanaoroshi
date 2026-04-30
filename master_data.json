@@ -10,7 +10,7 @@
       "pqty": 24,
       "pqty2": 2,
       "unit": "台",
-      "bookStock": 0
+      "bookStock": 77
     },
     {
       "id": "CHW20101",
@@ -22,7 +22,7 @@
       "pqty": 24,
       "pqty2": 2,
       "unit": "台",
-      "bookStock": 0
+      "bookStock": 100
     },
     {
       "id": "CHW20121",
@@ -34,7 +34,7 @@
       "pqty": 24,
       "pqty2": 2,
       "unit": "台",
-      "bookStock": 0
+      "bookStock": 48
     },
     {
       "id": "CHW20201",
@@ -46,7 +46,7 @@
       "pqty": 24,
       "pqty2": 2,
       "unit": "台",
-      "bookStock": 0
+      "bookStock": 96
     },
     {
       "id": "CHW30100",
@@ -58,7 +58,7 @@
       "pqty": 24,
       "pqty2": 2,
       "unit": "台",
-      "bookStock": 0
+      "bookStock": 48
     },
     {
       "id": "CHW30200",
@@ -70,7 +70,7 @@
       "pqty": 24,
       "pqty2": 2,
       "unit": "台",
-      "bookStock": 0
+      "bookStock": 144
     }
   ],
   "users": [
@@ -97,5 +97,5 @@
     "Outlet"
   ],
   "inv": {},
-  "updatedAt": "2026-04-30 16:27:45"
+  "updatedAt": "2026-04-30 16:33:13"
 }
