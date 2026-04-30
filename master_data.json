@@ -1,5 +1,78 @@
 {
-  "items": [],
+  "items": [
+    {
+      "id": "CFW30200",
+      "sku": "CFW30200",
+      "name": "CFW30200",
+      "jan": "49074025120",
+      "category": "Safe",
+      "shelf": "G-03",
+      "pqty": 24,
+      "pqty2": 2,
+      "unit": "台",
+      "bookStock": 0
+    },
+    {
+      "id": "CHW20101",
+      "sku": "CHW20101",
+      "name": "CHW20101",
+      "jan": "49074022402",
+      "category": "Safe",
+      "shelf": "G-05",
+      "pqty": 24,
+      "pqty2": 2,
+      "unit": "台",
+      "bookStock": 0
+    },
+    {
+      "id": "CHW20121",
+      "sku": "CHW20121",
+      "name": "CHW20121",
+      "jan": "49074023409",
+      "category": "Safe",
+      "shelf": "G-01",
+      "pqty": 24,
+      "pqty2": 2,
+      "unit": "台",
+      "bookStock": 0
+    },
+    {
+      "id": "CHW20201",
+      "sku": "CHW20201",
+      "name": "CHW20201",
+      "jan": "49074024802",
+      "category": "Safe",
+      "shelf": "G-02",
+      "pqty": 24,
+      "pqty2": 2,
+      "unit": "台",
+      "bookStock": 0
+    },
+    {
+      "id": "CHW30100",
+      "sku": "CHW30100",
+      "name": "CHW30100",
+      "jan": "49074022426",
+      "category": "Safe",
+      "shelf": "G-04",
+      "pqty": 24,
+      "pqty2": 2,
+      "unit": "台",
+      "bookStock": 0
+    },
+    {
+      "id": "CHW30200",
+      "sku": "CHW30200",
+      "name": "CHW30200",
+      "jan": "49074023447",
+      "category": "Safe",
+      "shelf": "G-06",
+      "pqty": 24,
+      "pqty2": 2,
+      "unit": "台",
+      "bookStock": 0
+    }
+  ],
   "users": [
     {
       "name": "松島",
@@ -24,5 +97,5 @@
     "Outlet"
   ],
   "inv": {},
-  "updatedAt": "2026-04-30 16:25:05"
+  "updatedAt": "2026-04-30 16:27:45"
 }
