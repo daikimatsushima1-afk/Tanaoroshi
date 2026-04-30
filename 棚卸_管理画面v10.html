@@ -860,9 +860,9 @@ function renderTrendTable(){
     const total=masterItems.length;
     const done=new Set(activeRecs.map(r=>r.sku)).size;
     const pct=total?Math.round(done/total*100):0;
-    /* 差異あり */
+    /* 差異あり：record.bookStockが0より大きければそちらを優先、なければマスタのbookStock */
     const latestMap={};activeRecs.forEach(r=>{if(!latestMap[r.sku]||r.timestamp>latestMap[r.sku].timestamp)latestMap[r.sku]=r});
-    let diffCount=0;masterItems.forEach(i=>{const r=latestMap[i.sku];if(!r)return;if(r.total-(i.bookStock||0)!==0)diffCount++});
+    let diffCount=0;masterItems.forEach(i=>{const r=latestMap[i.sku];if(!r)return;const book=r.bookStock>0?r.bookStock:(i.bookStock||0);if(r.total-book!==0)diffCount++});
     /* 再カウント率 */
     const voidRecs=recs.filter(r=>r.status==='void');
     const recountPct=activeRecs.length?Math.round(voidRecs.length/activeRecs.length*100):0;
@@ -938,7 +938,9 @@ function renderDashboard(){
   let diffCount=0;
   items.forEach(item=>{
     const rec=latestMap[item.sku];if(!rec)return;
-    if(rec.total-(item.bookStock||0)!==0)diffCount++;
+    /* v5.1: record.bookStockが0より大きければそちらを優先、なければマスタのbookStock */
+    const book=rec.bookStock>0?rec.bookStock:(item.bookStock||0);
+    if(rec.total-book!==0)diffCount++;
   });
 
   /* 本日のtoday（チーム別進捗バー用）*/
@@ -1063,7 +1065,10 @@ function renderDiff(){
   const catF=document.getElementById('diff-cat-filter')?.value||'';
   const stF=document.getElementById('diff-status-filter')?.value||'';
   let rows=items.map(item=>{
-    const rec=latestMap[item.sku];const book=item.bookStock||0;const actual=rec?rec.total:null;
+    const rec=latestMap[item.sku];
+    /* v5.1: record.bookStockが0より大きければそちらを優先（過去セッション参照時の差異再現）*/
+    const book=rec&&rec.bookStock>0?rec.bookStock:(item.bookStock||0);
+    const actual=rec?rec.total:null;
     const diff=actual!=null?actual-book:null;const pct=diff!=null&&book?((diff/book)*100):null;
     const stStatus=rec?(diff===0?'match':Math.abs(diff)>(book||1)*0.1?'large':'diff'):'missing';
     return{item,rec,book,actual,diff,pct,stStatus};
