@@ -922,10 +922,14 @@ function renderDashboard(){
 
   /* 母数：セッション状態に応じてマスタまたはレコードから再構築（v5.1）*/
   const items=getDisplayItems();
+  const sess=allSessions.find(s=>s.sessionId===currentSessionId);
+  const isClosed=sess&&sess.status==='CLOSED';
+
+  /* CLOSEDセッションは全件入力済み（完了率100%）*/
   const done=new Set(activeRecs.map(r=>r.sku));
   const total=items.length;
-  const doneCount=done.size;
-  const pct=total?Math.round(doneCount/total*100):0;
+  const doneCount=isClosed?total:done.size;
+  const pct=total?(isClosed?100:Math.round(doneCount/total*100)):0;
 
   /* 全体円形メーター */
   const circumference=2*Math.PI*70;
@@ -939,12 +943,12 @@ function renderDashboard(){
 
   /* カテゴリ別小型メーター */
   const cats=getCategories();
-  const r=2*Math.PI*20; // r=20 の小型メーター
+  const r=2*Math.PI*20;
   document.getElementById('cat-meters').innerHTML=cats.map(cat=>{
     const catItems=items.filter(i=>i.category===cat);
-    const catDone=catItems.filter(i=>done.has(i.sku)).length;
+    const catDone=isClosed?catItems.length:catItems.filter(i=>done.has(i.sku)).length;
     const catTotal=catItems.length;
-    const catPct=catTotal?Math.round(catDone/catTotal*100):0;
+    const catPct=catTotal?(isClosed?100:Math.round(catDone/catTotal*100)):0;
     const catOffset=r*(1-catPct/100);
     const fillCls=catPct<30?'low':catPct<70?'amber':'';
     return`<div class="cat-meter-row">
@@ -963,29 +967,25 @@ function renderDashboard(){
     </div>`;
   }).join('');
 
-  /* 差異あり件数 */
+  /* 差異あり件数：レコードのbookStockを優先 */
   const latestMap={};activeRecs.forEach(r=>{if(!latestMap[r.sku]||r.timestamp>latestMap[r.sku].timestamp)latestMap[r.sku]=r});
   let diffCount=0;
   items.forEach(item=>{
     const rec=latestMap[item.sku];if(!rec)return;
-    /* v5.1: record.bookStockが0より大きければそちらを優先、なければマスタのbookStock */
     const book=rec.bookStock>0?rec.bookStock:(item.bookStock||0);
     if(rec.total-book!==0)diffCount++;
   });
 
-  /* 本日のtoday（チーム別進捗バー用）*/
+  /* 再カウント率：セッション基準 */
   const today=fmtDate(new Date());
-
-  /* 再カウント率：セッション基準（日付依存を廃止）
-     選択中セッションのvoid件数 / active件数 で算出 */
   const sessionVoidRecs=sessionRecs.filter(r=>r.status==='void');
-  const sessionActiveRecs=activeRecs; // 上で定義済み
+  const sessionActiveRecs=activeRecs;
   const recountPct=sessionActiveRecs.length
     ?Math.round(sessionVoidRecs.length/sessionActiveRecs.length*100):0;
 
-  /* 行動カード更新 */
-  document.getElementById('ac-missing').textContent=total-doneCount;
-  document.getElementById('ac-missing-sub').textContent=(total-doneCount)+' 件が未入力';
+  /* 行動カード更新：CLOSEDは未入力ゼロ */
+  document.getElementById('ac-missing').textContent=isClosed?0:(total-doneCount);
+  document.getElementById('ac-missing-sub').textContent=isClosed?'棚卸完了済みセッション':(total-doneCount)+' 件が未入力';
   document.getElementById('ac-diff').textContent=diffCount;
   document.getElementById('ac-recount').textContent=sessionActiveRecs.length?recountPct+'%':'—';
   document.getElementById('ac-recount-sub').textContent=sessionActiveRecs.length
@@ -1005,8 +1005,8 @@ function renderDashboard(){
     </div>`;
   }).join('');
 
-  /* 未入力サンプル */
-  const missing=items.filter(i=>!done.has(i.sku));
+  /* 未入力サンプル：CLOSEDは常に「すべて入力済み」 */
+  const missing=isClosed?[]:items.filter(i=>!done.has(i.sku));
   const showCount=missingShowAll?missing.length:Math.min(10,missing.length);
   document.querySelector('#missing-tbl tbody').innerHTML=missing.slice(0,showCount).map(i=>`<tr>
     <td class="td-mono">${esc(i.sku)}</td>
