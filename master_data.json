@@ -1,5 +1,30 @@
 {
-  "items": [],
+  "items": [
+    {
+      "id": "1200",
+      "sku": "1200",
+      "name": "1200",
+      "jan": "49074019983",
+      "category": "Safe",
+      "shelf": "C-06",
+      "pqty": 72,
+      "pqty2": 4,
+      "unit": "台",
+      "bookStock": 0
+    },
+    {
+      "id": "1160BK",
+      "sku": "1160BK",
+      "name": "1160BK",
+      "jan": "49074018092",
+      "category": "Safe",
+      "shelf": "C-05",
+      "pqty": 54,
+      "pqty2": 2,
+      "unit": "台",
+      "bookStock": 0
+    }
+  ],
   "users": [
     {
       "name": "松島",
@@ -24,5 +49,5 @@
     "Outlet"
   ],
   "inv": {},
-  "updatedAt": "2026-05-01 15:26:25"
+  "updatedAt": "2026-05-01 15:26:42"
 }
