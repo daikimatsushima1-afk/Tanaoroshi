@@ -10,7 +10,7 @@
       "pqty": 72,
       "pqty2": 4,
       "unit": "台",
-      "bookStock": 0
+      "bookStock": 100
     },
     {
       "id": "1160BK",
@@ -22,7 +22,7 @@
       "pqty": 54,
       "pqty2": 2,
       "unit": "台",
-      "bookStock": 0
+      "bookStock": 200
     }
   ],
   "users": [
@@ -49,5 +49,5 @@
     "Outlet"
   ],
   "inv": {},
-  "updatedAt": "2026-05-01 15:26:42"
+  "updatedAt": "2026-05-01 15:27:12"
 }
