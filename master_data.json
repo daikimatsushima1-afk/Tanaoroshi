@@ -1,30 +1,5 @@
 {
-  "items": [
-    {
-      "id": "JBS-F310",
-      "sku": "JBS-F310",
-      "name": "JBS-F310",
-      "jan": "4580453651319",
-      "category": "Safe",
-      "shelf": "B-18",
-      "pqty": 8,
-      "pqty2": 12,
-      "unit": "台",
-      "bookStock": 100
-    },
-    {
-      "id": "JBS-K310",
-      "sku": "JBS-K310",
-      "name": "JBS-K310",
-      "jan": "4580453651012",
-      "category": "Safe",
-      "shelf": "B-19",
-      "pqty": 8,
-      "pqty2": 12,
-      "unit": "台",
-      "bookStock": 120
-    }
-  ],
+  "items": [],
   "users": [
     {
       "name": "松島",
@@ -49,5 +24,5 @@
     "Outlet"
   ],
   "inv": {},
-  "updatedAt": "2026-04-30 16:53:28"
+  "updatedAt": "2026-05-01 15:26:25"
 }
