@@ -855,14 +855,14 @@ function renderTrendTable(){
   tbody.innerHTML=sorted.map(s=>{
     const recs=sheetsRecords.filter(r=>r.sessionId===s.sessionId);
     const activeRecs=recs.filter(r=>r.status==='active');
-    /* 完了率：母数はSheetsのSessionItems（取得済みであれば）、なければマスタ */
-    const masterItems=ls(K.master)||[];
-    const total=masterItems.length;
-    const done=new Set(activeRecs.map(r=>r.sku)).size;
-    const pct=total?Math.round(done/total*100):0;
-    /* 差異あり：record.bookStockが0より大きければそちらを優先、なければマスタのbookStock */
-    const latestMap={};activeRecs.forEach(r=>{if(!latestMap[r.sku]||r.timestamp>latestMap[r.sku].timestamp)latestMap[r.sku]=r});
-    let diffCount=0;masterItems.forEach(i=>{const r=latestMap[i.sku];if(!r)return;const book=r.bookStock>0?r.bookStock:(i.bookStock||0);if(r.total-book!==0)diffCount++});
+    /* 完了率・差異：セッションのactiveレコードから母数を再構築（v5.1）*/
+    const tLatestMap={};activeRecs.forEach(r=>{if(!tLatestMap[r.sku]||r.timestamp>tLatestMap[r.sku].timestamp)tLatestMap[r.sku]=r});
+    const sessionItemsForTrend=Object.values(tLatestMap);
+    const total=sessionItemsForTrend.length;
+    const done=total; /* latestMapに入った時点で全件入力済み */
+    const pct=total?100:0;
+    /* 差異あり */
+    let diffCount=0;sessionItemsForTrend.forEach(r=>{const book=r.bookStock||0;if(r.total-book!==0)diffCount++});
     /* 再カウント率 */
     const voidRecs=recs.filter(r=>r.status==='void');
     const recountPct=activeRecs.length?Math.round(voidRecs.length/activeRecs.length*100):0;
@@ -881,6 +881,37 @@ function renderTrendTable(){
   }).join('');
 }
 
+/* ===== セッション選択に応じたアイテム母数を返すヘルパー（v5.1）=====
+   ACTIVEまたは未選択 → localStorageのマスタ（現在登録済み商品）
+   CLOSEDまたはDRAFT → sheetsRecordsのactiveレコードから再構築
+   これにより過去セッションを選択したとき、当時の商品構成で差異が表示される */
+function getDisplayItems(){
+  const sess=allSessions.find(s=>s.sessionId===currentSessionId);
+  /* ACTIVEセッション選択中、または未選択（全件表示）はマスタを使う */
+  if(!sess||sess.status==='ACTIVE'){
+    return ls(K.master)||[];
+  }
+  /* CLOSED / DRAFTセッションはレコードから再構築 */
+  const sessionRecs=sheetsRecords.filter(r=>r.sessionId===currentSessionId&&r.status==='active');
+  /* SKUごとに最新のactiveレコード1件を取得 */
+  const latestMap={};
+  sessionRecs.forEach(r=>{
+    if(!latestMap[r.sku]||r.timestamp>latestMap[r.sku].timestamp)latestMap[r.sku]=r;
+  });
+  /* レコードの情報からアイテム一覧を再構築 */
+  return Object.values(latestMap).map(r=>({
+    sku:       r.sku,
+    id:        r.sku,
+    name:      r.name       ||'',
+    category:  r.category   ||'',
+    shelf:     r.shelf      ||'',
+    unit:      r.unit       ||'',
+    bookStock: r.bookStock  ||0,
+    pqty:      r.pqty       ||0,
+    pqty2:     r.pqty2      ||null,
+  }));
+}
+
 /* ===== ダッシュボード ===== */
 function renderDashboard(){
   /* currentSessionId で絞り込み（未選択時は全件）*/
@@ -889,9 +920,8 @@ function renderDashboard(){
     :sheetsRecords;
   const activeRecs=sessionRecs.filter(r=>r.status==='active');
 
-  /* 母数：SessionItemsがあればそれ、なければマスタ */
-  const masterItems=ls(K.master)||[];
-  const items=masterItems;
+  /* 母数：セッション状態に応じてマスタまたはレコードから再構築（v5.1）*/
+  const items=getDisplayItems();
   const done=new Set(activeRecs.map(r=>r.sku));
   const total=items.length;
   const doneCount=done.size;
@@ -1055,7 +1085,8 @@ function exportRecordsCSV(){
 
 /* ===== 差異管理 ===== */
 function renderDiff(){
-  const items=ls(K.master)||[];
+  /* 母数：セッション状態に応じてマスタまたはレコードから再構築（v5.1）*/
+  const items=getDisplayItems();
   /* v9: セッション絞り込み */
   const baseRecs=currentSessionId
     ?sheetsRecords.filter(r=>r.sessionId===currentSessionId)
@@ -1094,8 +1125,11 @@ function renderDiff(){
   }).join('');
 }
 function exportDiffCSV(){
-  const items=ls(K.master)||[];const records=sheetsRecords.filter(r=>r.status==='active');const latestMap={};records.forEach(r=>{if(!latestMap[r.sku]||r.timestamp>latestMap[r.sku].timestamp)latestMap[r.sku]=r});
-  downloadCSV([['SKU','品名','カテゴリ','棚番','帳簿在庫','実棚卸','差異','差異率','入力者','タイムスタンプ'],...items.map(i=>{const rec=latestMap[i.sku];const b=i.bookStock||0;const a=rec?rec.total:null;const d=a!=null?a-b:null;return[i.sku,i.name,i.category||'',i.shelf||'',b,a??'未入力',d??'—',d!=null&&b?(((d/b)*100).toFixed(1)+'%'):'—',rec?.inputUser||'—',rec?.timestamp||'—']})],'差異管理.csv');
+  const items=getDisplayItems();
+  const baseRecs=currentSessionId?sheetsRecords.filter(r=>r.sessionId===currentSessionId):sheetsRecords;
+  const records=baseRecs.filter(r=>r.status==='active');
+  const latestMap={};records.forEach(r=>{if(!latestMap[r.sku]||r.timestamp>latestMap[r.sku].timestamp)latestMap[r.sku]=r});
+  downloadCSV([['SKU','品名','カテゴリ','棚番','帳簿在庫','実棚卸','差異','差異率','入力者','タイムスタンプ'],...items.map(i=>{const rec=latestMap[i.sku];const b=rec&&rec.bookStock>0?rec.bookStock:(i.bookStock||0);const a=rec?rec.total:null;const d=a!=null?a-b:null;return[i.sku,i.name,i.category||'',i.shelf||'',b,a??'未入力',d??'—',d!=null&&b?(((d/b)*100).toFixed(1)+'%'):'—',rec?.inputUser||'—',rec?.timestamp||'—']})],'差異管理.csv');
 }
 
 /* ===== カテゴリ ===== */
