@@ -10,7 +10,7 @@
       "pqty": 72,
       "pqty2": 4,
       "unit": "台",
-      "bookStock": 100
+      "bookStock": 80
     },
     {
       "id": "1160BK",
@@ -22,7 +22,31 @@
       "pqty": 54,
       "pqty2": 2,
       "unit": "台",
-      "bookStock": 200
+      "bookStock": 100
+    },
+    {
+      "id": "JBS-F310",
+      "sku": "JBS-F310",
+      "name": "JBS-F310",
+      "jan": "4.58045E+12",
+      "category": "Safe",
+      "shelf": "B-18",
+      "pqty": 8,
+      "pqty2": 12,
+      "unit": "台",
+      "bookStock": 50
+    },
+    {
+      "id": "JBS-K310",
+      "sku": "JBS-K310",
+      "name": "JBS-K310",
+      "jan": "4.58045E+12",
+      "category": "Safe",
+      "shelf": "B-19",
+      "pqty": 8,
+      "pqty2": 12,
+      "unit": "台",
+      "bookStock": 60
     }
   ],
   "users": [
@@ -49,5 +73,5 @@
     "Outlet"
   ],
   "inv": {},
-  "updatedAt": "2026-05-01 15:27:19"
+  "updatedAt": "2026-05-02 07:51:52"
 }
