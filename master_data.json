@@ -1,52 +1,28 @@
 {
   "items": [
     {
-      "id": "1200",
-      "sku": "1200",
-      "name": "1200",
-      "jan": "49074019983",
-      "category": "Safe",
-      "shelf": "C-06",
-      "pqty": 72,
-      "pqty2": 4,
-      "unit": "台",
-      "bookStock": 80
-    },
-    {
-      "id": "1160BK",
-      "sku": "1160BK",
-      "name": "1160BK",
-      "jan": "49074018092",
-      "category": "Safe",
-      "shelf": "C-05",
-      "pqty": 54,
-      "pqty2": 2,
-      "unit": "台",
-      "bookStock": 100
-    },
-    {
-      "id": "JBS-F310",
-      "sku": "JBS-F310",
-      "name": "JBS-F310",
+      "id": "CMJBS-C1000",
+      "sku": "CMJBS-C1000",
+      "name": "CMJBS-C1000",
       "jan": "4.58045E+12",
       "category": "Safe",
-      "shelf": "B-18",
-      "pqty": 8,
-      "pqty2": 12,
+      "shelf": "Z-01",
+      "pqty": 1,
+      "pqty2": null,
       "unit": "台",
-      "bookStock": 50
+      "bookStock": 4
     },
     {
-      "id": "JBS-K310",
-      "sku": "JBS-K310",
-      "name": "JBS-K310",
+      "id": "CMJBS-C750",
+      "sku": "CMJBS-C750",
+      "name": "CMJBS-C750",
       "jan": "4.58045E+12",
       "category": "Safe",
-      "shelf": "B-19",
-      "pqty": 8,
-      "pqty2": 12,
+      "shelf": "Z-01",
+      "pqty": 1,
+      "pqty2": null,
       "unit": "台",
-      "bookStock": 60
+      "bookStock": 3
     }
   ],
   "users": [
@@ -73,5 +49,5 @@
     "Outlet"
   ],
   "inv": {},
-  "updatedAt": "2026-05-02 07:51:52"
+  "updatedAt": "2026-05-19 14:38:13"
 }
