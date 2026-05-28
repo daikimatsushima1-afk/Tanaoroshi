@@ -1191,7 +1191,17 @@ function importMasterCSV(){
     }
     const lines=text.split('\n').slice(1).filter(l=>l.trim());
     const items=ls(K.master)||[];let added=0,updated=0;
-    lines.forEach(line=>{const cols=parseCsvLine(line);const[sku,name,jan,category,shelf,pqty,pqty2,unit,bookStock]=cols;if(!sku||!name)return;const item={id:sku,sku,name,jan:jan||'',category:category||'',shelf:shelf||'',pqty:parseInt(pqty)||0,pqty2:parseInt(pqty2)||null,unit:unit||'個',bookStock:parseInt(bookStock)||0};const ex=items.findIndex(i=>i.sku===sku);if(ex>=0){items[ex]=item;updated++}else{items.push(item);added++}});
+    lines.forEach(line=>{
+      const cols=parseCsvLine(line);
+      const[skuRaw,name,jan,category,shelf,pqty,pqty2,unit,bookStock]=cols;
+      if(!skuRaw||!name)return;
+      /* Outletカテゴリは SKU末尾に -OL を自動付加して別商品として登録 */
+      const sku=(category||'').trim()==='Outlet'&&!skuRaw.endsWith('-OL')
+        ?skuRaw+'-OL':skuRaw;
+      const item={id:sku,sku,name,jan:jan||'',category:category||'',shelf:shelf||'',pqty:parseInt(pqty)||0,pqty2:parseInt(pqty2)||null,unit:unit||'個',bookStock:parseInt(bookStock)||0};
+      const ex=items.findIndex(i=>i.sku===sku);
+      if(ex>=0){items[ex]=item;updated++}else{items.push(item);added++}
+    });
     lset(K.master,items);renderMaster();toast(`追加:${added}件 更新:${updated}件 — 「📤 マスタを公開」でiPhoneに反映`);
   };
   input.click();
