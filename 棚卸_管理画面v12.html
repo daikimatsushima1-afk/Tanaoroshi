@@ -209,6 +209,17 @@ tr.row-void{border-left:3px solid #ccc8be}
 .sel-bar.show{display:flex}
 .cb{width:15px;height:15px;accent-color:var(--accent);cursor:pointer}
 .loading-row td{text-align:center;color:var(--ink3);padding:24px}
+/* --- 設定エクスポート/インポート --- */
+.settings-transfer{margin-top:24px;padding:20px;background:#f8f9fa;border-radius:12px;border:1px solid #e0e0e0}
+.settings-transfer h3{font-size:15px;margin:0 0 8px 0;color:#333}
+.settings-transfer p{font-size:13px;color:#666;margin:0 0 16px 0;line-height:1.6}
+.settings-transfer .btn-row{display:flex;gap:12px;flex-wrap:wrap}
+.settings-transfer button{padding:10px 20px;border-radius:8px;border:1px solid #ccc;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:opacity .2s}
+.settings-transfer button:active{opacity:.7}
+.settings-transfer .btn-export{background:#1976d2;color:#fff;border-color:#1976d2}
+.settings-transfer .btn-import{background:#fff;color:#333}
+.settings-transfer .btn-import:hover{background:#f0f0f0}
+#import-settings-file{display:none}
 </style>
 </head>
 <body>
@@ -542,6 +553,19 @@ tr.row-void{border-left:3px solid #ccc8be}
       </div>
     </div>
   </div>
+
+  <!-- 設定エクスポート/インポート -->
+<div class="settings-transfer">
+  <h3>⚙️ 設定の引き継ぎ</h3>
+  <p>他のPCで管理画面を使うときに、設定をファイルで受け渡しできます。<br>
+    ※商品マスタ・棚卸記録は含まれません（Sheets／GitHubから取得されます）</p>
+  <div class="btn-row">
+    <button class="btn-export" onclick="exportSettings()">📥 設定をエクスポート</button>
+    <button class="btn-import" onclick="document.getElementById('import-settings-file').click()">📤 設定をインポート</button>
+    <input type="file" id="import-settings-file" accept=".json" onchange="importSettings(event)">
+  </div>
+</div>
+
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1272,6 +1296,78 @@ function downloadCSV(rows,filename){const text=rows.map(r=>r.map(c=>`"${String(c
 
 initData();renderCategorySelect('m-category');populateCatFilter('m-cat-filter');
 setInterval(()=>{if(getGsUrl()) loadRecordsFromSheets()}, 5*60*1000);
+  
+/* --- 設定エクスポート/インポート --- */
+function exportSettings(){
+  const data={
+    _exportedAt:new Date().toISOString(),
+    _version:'v10',
+    _note:'棚卸システム管理画面の設定ファイル',
+    ts_gs_url:      localStorage.getItem('ts_gs_url')||'',
+    ts_gh_token:    localStorage.getItem('ts_gh_token')||'',
+    ts_gh_user:     localStorage.getItem('ts_gh_user')||'',
+    ts_gh_repo:     localStorage.getItem('ts_gh_repo')||'',
+    ts_base_url:    localStorage.getItem('ts_base_url')||'',
+    ts_categories:  JSON.parse(localStorage.getItem('ts_categories')||'[]'),
+    ts_users:       JSON.parse(localStorage.getItem('ts_users')||'[]'),
+    ts_input_version:localStorage.getItem('ts_input_version')||'v10',
+    ts_logo_b64:    localStorage.getItem('ts_logo_b64')||''
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='tanaoroshi_settings_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('設定ファイルをダウンロードしました');
+}
+
+function importSettings(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!data._version){
+        toast('無効な設定ファイルです');
+        return;
+      }
+      const items=[
+        data.ts_gs_url?'GS URL':'',
+        data.ts_gh_token?'GitHubトークン':'',
+        data.ts_gh_user?'GitHubユーザー':'',
+        data.ts_gh_repo?'GitHubリポジトリ':'',
+        data.ts_base_url?'ベースURL':'',
+        (data.ts_categories&&data.ts_categories.length)?'カテゴリ('+data.ts_categories.length+'件)':'',
+        (data.ts_users&&data.ts_users.length)?'入力者('+data.ts_users.length+'件)':'',
+        data.ts_input_version?'入力画面バージョン':'',
+        data.ts_logo_b64?'ロゴ':''
+      ].filter(Boolean);
+      if(!confirm('以下の設定をインポートしますか？\n\n'+items.join('\n')+'\n\n※現在の設定は上書きされます。')){
+        e.target.value='';
+        return;
+      }
+      const keys=['ts_gs_url','ts_gh_token','ts_gh_user','ts_gh_repo','ts_base_url','ts_input_version','ts_logo_b64'];
+      keys.forEach(k=>{
+        if(data[k]!==undefined&&data[k]!=='') localStorage.setItem(k,data[k]);
+      });
+      if(data.ts_categories&&data.ts_categories.length){
+        localStorage.setItem('ts_categories',JSON.stringify(data.ts_categories));
+      }
+      if(data.ts_users&&data.ts_users.length){
+        localStorage.setItem('ts_users',JSON.stringify(data.ts_users));
+      }
+      toast('設定をインポートしました。画面を再読み込みします…');
+      setTimeout(()=>location.reload(),1500);
+    }catch(err){
+      toast('ファイルの読み込みに失敗しました: '+err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
 </script>
 </body>
 </html>
